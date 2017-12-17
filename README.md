@@ -49,7 +49,7 @@ There is no automated installer (yet) for the client application. To install it:
 
 * Open your server URL in a browser.
 * Enter your cloud password to log in.
-* At the bottom of the page, a section should provide installation instructions and a link to download the client for your platform. On UNIX-like systems, these instructions boils down to copy the client application to ``/usr/local/bin``.
+* At the bottom of the page, a section should provide installation instructions and a link to download the client for your platform. On UNIX-like systems, these instructions boil down to setting the downloaded file execute bit with ``chmod 755`` and then copying it to ``/usr/local/bin``.
 * Open a terminal.
 * Type ``nubo`` and hit enter to check it runs properly.
 
