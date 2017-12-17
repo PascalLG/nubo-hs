@@ -1,0 +1,13 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- HDBC-sqlite3-2.3.3.1
+- binary-0.9.0.0
+- hspec-2.4.4
+- hspec-core-2.4.4
+- hspec-discover-2.4.4
+- primitive-0.6.2.0
+- quickcheck-io-0.2.0
+resolver: lts-8.21

@@ -1,0 +1,90 @@
+name:                nubo
+version:             2.0.0.1
+-- synopsis:
+-- description:
+homepage:            https://github.com/githubuser/nubo#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2017 Author name here
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Config
+                     , Misc
+                     , PrettyPrint
+                     , Error
+                     , UUID
+                     , UUID.Internal
+                     , Database
+                     , Archive
+                     , FileHelper
+                     , MsgPack
+                     , Matching
+                     , Matching.Internal
+                     , WebService
+                     , CmdAuth
+                     , CmdHelp
+                     , CmdIgnore
+                     , CmdInit
+                     , CmdRemote
+                     , CmdSync
+                     , CmdSync.Actions
+                     , CmdSync.Logic
+                     , Paths_nubo
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring
+                     , directory >= 1.3
+                     , filepath
+                     , binary >= 0.9
+                     , containers
+                     , cryptonite
+                     , HDBC
+                     , HDBC-sqlite3
+                     , hostname
+                     , http-client
+                     , http-client-tls
+                     , http-types
+                     , zlib >= 0.6.1.2
+                     , memory
+                     , mtl
+                     , transformers
+                     , text
+                     , time
+                     , unicode-transforms
+  ghc-options:         -Wall -O2
+  default-language:    Haskell2010
+
+executable nubo-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , nubo
+  default-language:    Haskell2010
+
+test-suite nubo-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , binary
+                     , bytestring
+                     , hspec
+                     , nubo
+                     , random
+                     , text
+  other-modules:       UUIDSpec
+                     , MsgPackSpec
+                     , MatchingSpec
+                     , CmdSyncSpec
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/nubo
