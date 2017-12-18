@@ -45,11 +45,11 @@ Nubo does not have to reside at the root of your server. You can also install it
 
 ### Client
 
-There is no automated installer (yet) for the client application. To install it:
+The client is available as a macOS package for the macOS platform, and as a Debian package for the Linux platform. To install it:
 
 * Open your server URL in a browser.
 * Enter your cloud password to log in.
-* At the bottom of the page, a section should provide installation instructions and a link to download the client for your platform. On UNIX-like systems, these instructions boil down to setting the downloaded file execute bit with ``chmod 755`` and then copying it to ``/usr/local/bin``.
+* At the bottom of the page, a section should provide installation instructions and a link to download the client for your platform.
 * Open a terminal.
 * Type ``nubo`` and hit enter to check it runs properly.
 

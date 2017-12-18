@@ -174,16 +174,17 @@ EOT;
                 echo <<<EOT
 <p>To install the latest <strong>nubo</strong> client application for macOS:</p>
 <ul>
-    <li><a href="https://aequans.com/download.php?file=3">Click here</a> to download the application</li>
-    <li>Copy the downloaded file to <tt>/usr/local/bin</tt></li>
+    <li><a href="https://aequans.com/download.php?file=3">Click here</a> to download the installer</li>
+    <li>Double-click the downloaded file to start installation</li>
 </ul>
 EOT;
             } else if (preg_match('/linux|ubuntu/i', $user_agent)) {
                 echo <<<EOT
 <p>To install the latest <strong>nubo</strong> client application for Linux:</p>
 <ul>
-    <li><a href="https://aequans.com/download.php?file=4">Click here</a> to download the application</li>
-    <li>Copy the downloaded file to <tt>/usr/local/bin</tt></li>
+    <li><a href="https://aequans.com/download.php?file=4">Click here</a> to download the nubo package</li>
+    <li>Open a terminal and change to the directory where the package has been downloaded</li>
+    <li>Type: sudo dpkg -i nubo.deb</li>
 </ul>
 EOT;
             } else {

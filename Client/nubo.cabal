@@ -1,13 +1,12 @@
 name:                nubo
-version:             2.0.0.1
+version:             2.0.0.2
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/nubo#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
+homepage:            https://github.com/PascalLG/Nubo
+license:             MIT
+author:              Pascal Levy
+maintainer:          pascal.levy@aequans.com
+copyright:           2017 Æquans
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
@@ -87,4 +86,4 @@ test-suite nubo-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/nubo
+  location: https://github.com/PascalLG/Nubo
