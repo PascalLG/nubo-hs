@@ -97,9 +97,9 @@ If you want to contribute, or if you just want to play around with the source co
 
 ### Server
 
-In the ``./Prod`` directory, the ``build.php`` script is used to generate an installer for the server application. This script zips all the required files, encodes the resulting archive in base64, and embeds that data into the ``template.php`` file to produce a self-extracting ``install.php`` file.
+In the ``./Prod`` directory, the ``build-server.php`` script is used to generate an installer for the server application. This script zips all the required files, encodes the resulting archive in base64, and embeds that data into the ``template.php`` file to produce a self-extracting ``install.php`` file.
 
-To run this script: open a terminal, change directory to ``./Prod`` and run ``./build.php``. If bash complains about permissions, ensure this script has its execute bit set by running ``chmod +x build.php``.
+To run this script: open a terminal, change directory to ``./Prod`` and run ``./build-server.php``. If bash complains about permissions, ensure this script has its execute bit set by running ``chmod +x build-server.php``.
 
 You'll need a PHP 5 or PHP 7 interpreter in ``/usr/bin``. This should not be a problem on most UNIX-like systems.
 
@@ -107,7 +107,7 @@ You'll need a PHP 5 or PHP 7 interpreter in ``/usr/bin``. This should not be a p
 
 The client application is a regular Haskell project based on Stack and Cabal. If necessary, you can install the required tool chain on your computer by following the instructions on the [Stack](https://docs.haskellstack.org/en/stable/README/) homepage.
 
-Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``.
+Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``build-macos.sh`` and ``build-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
 
 Although I have not tested yet, I expect compiling on Windows requires a bit more work, mainly because some libraries that are common on UNIX-like systems are missing by default on Windows. More on that later.
 
