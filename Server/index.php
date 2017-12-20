@@ -174,7 +174,7 @@ EOT;
                 echo <<<EOT
 <p>To install the latest <strong>nubo</strong> client application for macOS:</p>
 <ul>
-    <li><a href="https://aequans.com/download.php?file=3">Click here</a> to download the installer</li>
+    <li><a href="https://aequans.com/download.php?file=3">Click here</a> to download the nubo package</li>
     <li>Double-click the downloaded file to start installation</li>
 </ul>
 EOT;

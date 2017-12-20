@@ -35,9 +35,9 @@ Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensio
 
 To install your server:
 
-* Download the ``install.php`` file by [clicking here](https://aequans.com/download.php?file=5).
+* Download the ``nubo.php`` file by [clicking here](https://aequans.com/download.php?file=5).
 * Upload this file on your server via FTP, SFTP or any other appropriate tool.
-* Open it in your browser. For example, if your server URL is ``mydomain.com``, open ``https://mydomain.com/install.php``.
+* Open it in your browser. For example, if your server URL is ``mydomain.com``, open ``https://mydomain.com/nubo.php``.
 * If the installation failed, the page should read an error message listing encountered issues. Fix them and try again.
 * Otherwise, the page displays a success message. Follow the on screen instructions to define your cloud password and finalise the configuration.
 
@@ -45,13 +45,12 @@ Nubo does not have to reside at the root of your server. You can also install it
 
 ### Client
 
-The client is available as a macOS package for the macOS platform, and as a Debian package for the Linux platform. To install it:
+The client is available as a macOS package for the macOS platform and as a Debian package for the Linux platform. To install it:
 
 * Open your server URL in a browser.
 * Enter your cloud password to log in.
-* At the bottom of the page, a section should provide installation instructions and a link to download the client for your platform.
-* Open a terminal.
-* Type ``nubo`` and hit enter to check it runs properly.
+* At the bottom of the page, a section should provide a link to download the package for your platform.
+* Once downloaded, install that package the usual way.
 
 You now have to create a nubo drive. This is the special folder that will be synchronised with your cloud.
 
@@ -93,21 +92,21 @@ Authentication issues are mostly related to disconnections while synchronising. 
 
 ## Compiling Nubo
 
-If you want to contribute, or if you just want to play around with the source code, here is how to compile Nubo.
+If you want to contribute, or if you just want to play around with the source code, here is how to compile Nubo. Note: all the scripts below are designed for ``bash`` under macOS, unless stated otherwise.
+
+### Versionning
+
+If necessary, before building nubo and generating web, macOS and Linux installers, you may want to change the nubo version number. This is what the ``patchversion.sh`` script is for. Just run that script from the ``./Prod`` directory, specifying the desired version number as parameter. This patches all the required files to inject that new version string into both the server and the client application.
 
 ### Server
 
-In the ``./Prod`` directory, the ``build-server.php`` script is used to generate an installer for the server application. This script zips all the required files, encodes the resulting archive in base64, and embeds that data into the ``template.php`` file to produce a self-extracting ``install.php`` file.
-
-To run this script: open a terminal, change directory to ``./Prod`` and run ``./build-server.php``. If bash complains about permissions, ensure this script has its execute bit set by running ``chmod +x build-server.php``.
-
-You'll need a PHP 5 or PHP 7 interpreter in ``/usr/bin``. This should not be a problem on most UNIX-like systems.
+In the ``./Prod`` directory, the ``pack-server.sh`` generates an installer for the server application. This script zips all the required files, encodes the resulting archive in base64, and embeds that data into the necessary PHP code to produce a self-extracting ``nubo.php`` file.
 
 ### Client
 
 The client application is a regular Haskell project based on Stack and Cabal. If necessary, you can install the required tool chain on your computer by following the instructions on the [Stack](https://docs.haskellstack.org/en/stable/README/) homepage.
 
-Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``build-macos.sh`` and ``build-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
+Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` and ``pack-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
 
 Although I have not tested yet, I expect compiling on Windows requires a bit more work, mainly because some libraries that are common on UNIX-like systems are missing by default on Windows. More on that later.
 

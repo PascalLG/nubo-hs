@@ -1,3 +1,16 @@
+#!/bin/bash
+
+# Remove any previous temporary file.
+rm tmp.zip > /dev/null 2>&1
+
+# Zip the server source code, excluding files that should not be installed on the server.
+echo "Zipping server source code..."
+pushd ../Server > /dev/null
+zip -r -9 ../Prod/tmp.zip . -x 'storage/*' '*.htaccess' '*.DS_Store'
+popd > /dev/null
+
+# Generate the installer header.
+cat << 'EOF' > nubo.php
 <?php
     //-----------------------------------------------------------------------------
     // Nubo Server Installer
@@ -23,7 +36,14 @@
     //-----------------------------------------------------------------------------
 
     $content = <<<EOT
-%content%
+EOF
+
+# Inline the base64 encoded server source code.
+base64 tmp.zip | fold -w 128 >> nubo.php
+rm tmp.zip
+
+# Generate the installer body.
+cat << 'EOF' >> nubo.php
 EOT;
 
     define('MIN_PHP_VERSION', 7);
@@ -89,3 +109,6 @@ EOT;
 ?>
 </body>
 </html>
+EOF
+
+echo "Done."
