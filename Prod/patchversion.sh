@@ -13,7 +13,7 @@ if ! [[ $1 =~ ^[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}$ ]]; then
 fi
 
 # Patch the server version number
-sed -E -i "" -e "s/define\\(VERSION, *\"[0-9.]+\"\\);/define(VERSION, \"$1\");/" ../Server/php/version.php
+sed -E -i "" -e "s/define\\(\"VERSION\", *\"[0-9.]+\"\\);/define(\"VERSION\", \"$1\");/" ../Server/php/version.php
 
 # Patch the client version number
 sed -E -i "" -e "s/^ *version: *[0-9.]+ *$/version:             $1/" ../Client/nubo.cabal

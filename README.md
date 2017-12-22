@@ -120,7 +120,6 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 * Synchronise file permissions (currently all files are created with the default umask)
 * Do not resolve symlinks that point to another location into the same drive
 * Check if a new version of the application is available before each invocation (both client and server side)
-* Add an API version number to each frame to ensure the server and client are compatible
 * Fix/improve the progress bar when uploading/downloading large files
 * Refactor using the more robust Path package for filename handling instead of System.Filepath
 * Refactor the Archive module so it can be unit tested

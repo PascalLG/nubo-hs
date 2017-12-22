@@ -26,6 +26,7 @@
     ini_set('display_errors', 0);
     ini_set('log_errors', 1);
 
+    require_once('php/version.php');
     require_once('php/exception.php');
     require_once('php/sqlite.php');
     require_once('php/msgpack.php');
@@ -41,6 +42,12 @@
 
         $unpacker = new MsgUnpacker(file_get_contents('php://input'));
         $body = $unpacker->unpack();
+
+        if (!isset($body['api']) || intval($body['api']) < APILEVEL) {
+            throw new NuboException(ERROR_API_OLD_CLIENT);
+        } else if (intval($body['api']) > APILEVEL) {
+            throw new NuboException(ERROR_API_OLD_SERVER);
+        }
 
         if (!is_array($body) || !isset($body['cmd'])) {
             throw new NuboException(ERROR_ILL_FORMED);
