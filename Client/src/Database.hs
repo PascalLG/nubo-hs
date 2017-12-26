@@ -88,7 +88,7 @@ findNuboDB = getWorkingDirectory >>= find . strip
 -- action in a Reader monad with the database handle.
 --
 createDBAndRun :: EnvIO ExitStatus -> IO ExitStatus
-createDBAndRun action = bracket create disconnect exec
+createDBAndRun action = bracket create cleanup exec
     where
         create :: IO Connection
         create = do
@@ -101,6 +101,10 @@ createDBAndRun action = bracket create disconnect exec
             _ <- run db "DELETE FROM ignore" []
             commit db
             return db
+
+        cleanup :: Connection -> IO ()
+        cleanup db = disconnect db >>
+                     hideFile nuboDatabase
 
         exec :: Connection -> IO ExitStatus
         exec db = newEnvTLS >>= \env -> 
@@ -237,7 +241,7 @@ updateFileInfo filename hash = do
     (Just db, _, _) <- ask
     r <- liftIO $ quickQuery' db "SELECT file_id FROM file WHERE filename=? LIMIT 1" [toSql filename]
     _ <- case r of
-            [[f]] -> liftIO $ run db "UPDATE file SET hash=? WHERE file_id=? LIMIT 1" [toSql hash, f]
+            [[f]] -> liftIO $ run db "UPDATE file SET hash=? WHERE file_id=?" [toSql hash, f]
             _     -> liftIO $ run db "INSERT INTO file(filename, hash) VALUES(?,?)" [toSql filename, toSql hash]
     liftIO $ commit db
     return $ Right ()

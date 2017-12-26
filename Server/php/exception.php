@@ -32,6 +32,9 @@
     define('ERROR_STORAGE',             6);
     define('ERROR_MSGPACK',             7);
     define('ERROR_INTERNAL',            8);
+    define('ERROR_API_OLD_CLIENT',      9);
+    define('ERROR_API_OLD_SERVER',     10);
+    
 
     //-----------------------------------------------------------------------------
     // Custom exception.
@@ -58,6 +61,8 @@
                 ERROR_STORAGE =>            'storage consistency',
                 ERROR_MSGPACK =>            'invalid msgpack',
                 ERROR_INTERNAL =>           'internal server error',
+                ERROR_API_OLD_CLIENT =>     'incompatible API, client is too old',
+                ERROR_API_OLD_SERVER =>     'incompatible API, server is too old',
             ][$this->errcode];
             return ['error' => $this->errcode, 'message' => $msg . ' (' . $this->file . ' ' . $this->line . ')'];
         }

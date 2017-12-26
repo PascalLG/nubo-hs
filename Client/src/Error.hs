@@ -60,6 +60,8 @@ data Error =
     | ErrInvalidPattern String
     | ErrInvalidPatternRef String
     | ErrMissingMasterKey
+    | ErrApiLevelOldClient
+    | ErrApiLevelOldServer
     deriving (Eq)
     
 instance Show Error where
@@ -101,7 +103,7 @@ renderError (ErrServer500 status)           = "internal server error (HTTP " ++ 
 renderError (ErrMsgPackDecoding msg)        = "server response decoding failed (" ++ msg ++ ")"
 renderError (ErrCloudNotInitialized)        = "cloud not initialised"
 renderError (ErrCloudAuthenticationFailed)  = "authentication failed"
-renderError (ErrCloudGeneric msg)           = "unexpected error (" ++ msg ++ ")"
+renderError (ErrCloudGeneric msg)           = "unexpected server error (" ++ msg ++ ")"
 renderError (ErrIOException path msg)       = "I/O error while accessing file '" ++ path ++ "': " ++ msg
 renderError (ErrInvalidMasterKey)           = "the server returned an invalid master key"
 renderError (ErrInvalidCharInFilename)      = "invalid characters in filename"
@@ -112,5 +114,7 @@ renderError (ErrAlreadySyncFolder path)     = "this folder is under '" ++ path +
 renderError (ErrInvalidPattern pattern)     = "invalid pattern: '" ++ pattern ++ "'"
 renderError (ErrInvalidPatternRef ref)      = "invalid pattern reference: '" ++ ref ++ "'"
 renderError (ErrMissingMasterKey)           = "missing master key"
+renderError (ErrApiLevelOldClient)          = "incompatible version, please update your client application"
+renderError (ErrApiLevelOldServer)          = "incompatible version, please update your server application"
 
 -----------------------------------------------------------------------------

@@ -178,6 +178,7 @@ helpIgnore = do
     putLine $ "    Note: even though they do not appear explicitly in this list, the following"
     putLine $ "    files and folders are always ignored:"
     putLine $ ""
+    putLine $ "        {m:.git}}"
     putLine $ "        {m:.cabal-sandbox}}"
     putLine $ "        {m:.DS_Store}}"
     putLine $ "        {m:.stack-work}}"

@@ -135,7 +135,7 @@ parsePattern p = case map parse (splitPath p) of
         isRoot _ = False
 
 -- | Parse a glob pattern and return a list of match terms. Only *
--- and ? wildcards are supported. Text encoding is NFD-normalized
+-- and ? wildcards are supported. Text encoding is NFC-normalized
 -- to allow easy comparing with universal filenames returned by
 -- the FileHelper module.
 --
@@ -154,7 +154,7 @@ parseGlob = map norm . simplify . map parse
         simplify [] = []
 
         norm :: MatchTerm -> MatchTerm
-        norm (MatchLiteral t) = MatchLiteral (normalize NFD t)
+        norm (MatchLiteral t) = MatchLiteral (normalize NFC t)
         norm m = m
 
 -----------------------------------------------------------------------------
