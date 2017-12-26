@@ -17,7 +17,7 @@ Basically nubo runs as any other file sharing solution. You drop files into a sp
 
 * End-to-end encryption with AES 256 in CTR mode. The key is never stored on the server. Your data remains safe even if your server is compromised. (The counterpart is that this architecture forbids implementation of a web sharing feature à la Dropbox, but I can live with that.)
 
-* You can add filter patterns (on a computer basis) to avoid synchronising specific files. For example, you may want to ignore all ``.o`` files if you happen to compile a C project directly from your nubo drive. Or you may not want to share files between your personal and your business computers, except for that folder with very personal content.
+* You can add filter patterns (on a computer basis) to avoid synchronising specific files. For example, you may want to ignore all ``.o`` files if you happen to compile a C project directly from your nubo drive. Or you may want to share files between your personal and your business computers, except for that folder with very personal content.
 
 * Unlike other similar applications, the nubo configuration is not stored globally but in a hidden file in each nubo drive. This means you can have as many nubo drives as you want on your computer, each synchronising with a different server. 
 
@@ -25,20 +25,20 @@ Basically nubo runs as any other file sharing solution. You drop files into a sp
 
 * Files with a non-portable name trigger an error. Non portable names include: characters that are not supported on all platforms, reserved keywords, reserved Windows peripheral names, and names that may conflict once transferred on a case insensitive file system. Files bigger than 300Mo also trigger an error.
 
-Warning: use nubo at your own risk. By nature this software may alter or delete content on your hard drive. It is provided "as is" without any warranty of any kind. In no event shall the authors be liable for any claim or damages. Refer to the license file for more information.
+*Warning: use nubo at your own risk. By nature this software may alter or delete content on your hard drive. It is provided "as is" without any warranty of any kind. In no event shall the authors be liable for any claim or damages. Refer to the license file for more information.*
 
 ## Installation
 
 ### Server
 
-Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection. Files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
+Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection: files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
 
 To install your server:
 
 * Download the ``nubo.php`` file by [clicking here](https://aequans.com/download.php?file=5).
 * Upload this file on your server via FTP, SFTP or any other appropriate tool.
 * Open it in your browser. For example, if your server URL is ``mydomain.com``, open ``https://mydomain.com/nubo.php``.
-* If the installation failed, the page should read an error message listing encountered issues. Fix them and try again.
+* If the installation failed, the page should read an error message that lists encountered issues. Fix them and try again.
 * Otherwise, the page displays a success message. Follow the on screen instructions to define your cloud password and finalise the configuration.
 
 Nubo does not have to reside at the root of your server. You can also install it in a subdirectory. You can even host several clouds on the same server in separate subdirectories.
@@ -94,11 +94,11 @@ Authentication issues are mostly related to network disconnections while synchro
 
 ## Compiling Nubo
 
-If you want to contribute, or if you just want to play around with the source code, here is how to compile Nubo. Note: all the scripts below are designed for ``bash`` under macOS, unless stated otherwise.
+If you want to contribute, or if you just want to play around with the source code, here is how to compile Nubo. Note: all the scripts below are designed for ``bash`` under macOS, unless stated otherwise. They should work with other flavours of UNIX though.
 
 ### Versionning
 
-If necessary, before building nubo and generating web, macOS and Linux installers, you may want to change the nubo version number. This is what the ``patchversion.sh`` script is for. Just run that script from the ``./Prod`` directory, specifying the desired version number as parameter. This patches all the required files to inject that new version string into both the server and the client application.
+If necessary, before building anything, you may want to change the nubo version number. This is what the ``patchversion.sh`` script is for. Just run that script from the ``./Prod`` directory, specifying the desired version number as parameter. This patches all the required files to inject that new version string into both the server and the client application.
 
 ### Server
 
@@ -110,7 +110,7 @@ The client application is a regular Haskell project based on Stack and Cabal. If
 
 Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` and ``pack-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
 
-Compilation on Windows requires a lit bit more work. First you must [download the source code and precompiled DLLs](http://sqlite.org/download.html) for SQLite 3. Copy all these files into a folder, for example ``c:\sqlite``. Also copy the DLLs into ``c:\Windows\System32``. Then, to build nubo: open a terminal, change directory to ``.\Client`` and run ``stack build --extra-dirs-lib=c:\sqlite --extra-include-dirs=c:\sqlite``. Note: support for Windows is still experimental. There is no installer, some minor features like the fancy colours in the nubo output are not supported yet, and due to [this bug](https://ghc.haskell.org/trac/ghc/ticket/4471), display problems are expected with filenames containing non-ASCII characters.
+Compilation on Windows requires a lit bit more work. First you must [download the source code and precompiled DLLs](http://sqlite.org/download.html) of SQLite 3. Copy all these files into a folder, for example ``c:\sqlite``. Also copy the DLLs into ``c:\Windows\System32``. Then, to build nubo: open a terminal, change directory to ``.\Client`` and run ``stack build --extra-dirs-lib=c:\sqlite --extra-include-dirs=c:\sqlite``. Note: support for Windows is experimental. There is no installer, some minor features like the fancy colours in the command line output are not supported yet, and due to [this bug](https://ghc.haskell.org/trac/ghc/ticket/4471), display problems are expected with filenames containing non-ASCII characters.
 
 Note that the source directory includes a hidden ``.ghci`` file. It defines command line options that are passed to GHCi but not to GHC, in other words options that apply when debugging in REPL mode but not when compiling a release build. This is used in ``./src/Config.hs`` to change the working directory to ``./Sandbox`` when experimenting interactively with the synchronisation algorithm.
 
@@ -127,6 +127,7 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 * Refactor the Archive module so it can be unit tested
 * Create a macOS application to encapsulate the command line into a nice GUI
 * Improve the Windows version and provide an MSI installer
+* Improve the web installer (permissions problems sometimes arise when installing over an old version + there is currently no migration of the database in this case)
 * Write a better documentation :-)
 
 Suggestions are welcome. My goal is to keep this application as simple and minimalist as possible. "Make each program do one thing well" says the Unix philosophy!
