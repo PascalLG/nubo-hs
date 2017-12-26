@@ -108,7 +108,7 @@ In the ``./Prod`` directory, the ``pack-server.sh`` generates an installer for t
 
 The client application is a regular Haskell project based on Stack and Cabal. If necessary, you can install the required tool chain on your computer by following the instructions on the [Stack](https://docs.haskellstack.org/en/stable/README/) homepage.
 
-Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` and ``pack-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
+Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` script (on macOS) and the ``pack-linux.sh`` script (on any Debian Linux) in the ``./Prod`` directory are then used to generate macOS and Linux packages.
 
 Compilation on Windows requires a lit bit more work. First you must [download the source code and precompiled DLLs](http://sqlite.org/download.html) of SQLite 3. Copy all these files into a folder, for example ``c:\sqlite``. Also copy the DLLs into ``c:\Windows\System32``. Then, to build nubo: open a terminal, change directory to ``.\Client`` and run ``stack build --extra-dirs-lib=c:\sqlite --extra-include-dirs=c:\sqlite``. Note: support for Windows is experimental. There is no installer, some minor features like the fancy colours in the command line output are not supported yet, and due to [this bug](https://ghc.haskell.org/trac/ghc/ticket/4471), display problems are expected with filenames containing non-ASCII characters.
 
