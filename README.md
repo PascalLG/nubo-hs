@@ -92,28 +92,6 @@ Authentication is performed once with the ``nubo init`` command. Nubo then uses 
 
 Authentication issues are mostly related to network disconnections while synchronising. In such a case, the server processes a query, invalidates the current token and generates a new one, but the client is never aware of that new token because the connection is lost before it has a chance to receive the server response.
 
-## Compiling Nubo
-
-If you want to contribute, or if you just want to play around with the source code, here is how to compile Nubo. Note: all the scripts below are designed for ``bash`` under macOS, unless stated otherwise. They should work with other flavours of UNIX though.
-
-### Versionning
-
-If necessary, before building anything, you may want to change the nubo version number. This is what the ``patchversion.sh`` script is for. Just run that script from the ``./Prod`` directory, specifying the desired version number as parameter. This patches all the required files to inject that new version string into both the server and the client application.
-
-### Server
-
-In the ``./Prod`` directory, the ``pack-server.sh`` generates an installer for the server application. This script zips all the required files, encodes the resulting archive in base64, and embeds that data into the necessary PHP code to produce a self-extracting ``nubo.php`` file.
-
-### Client
-
-The client application is a regular Haskell project based on Stack and Cabal. If necessary, you can install the required tool chain on your computer by following the instructions on the [Stack](https://docs.haskellstack.org/en/stable/README/) homepage.
-
-Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` script (on macOS) and the ``pack-linux.sh`` script (on any Debian Linux) in the ``./Prod`` directory are then used to generate macOS and Linux packages.
-
-Compilation on Windows requires a lit bit more work. First you must [download the source code and precompiled DLLs](http://sqlite.org/download.html) of SQLite 3. Copy all these files into a folder, for example ``c:\sqlite``. Also copy the DLLs into ``c:\Windows\System32``. Then, to build nubo: open a terminal, change directory to ``.\Client`` and run ``stack build --extra-dirs-lib=c:\sqlite --extra-include-dirs=c:\sqlite``. Note: support for Windows is experimental. There is no installer, some minor features like the fancy colours in the command line output are not supported yet, and due to [this bug](https://ghc.haskell.org/trac/ghc/ticket/4471), display problems are expected with filenames containing non-ASCII characters.
-
-Note that the source directory includes a hidden ``.ghci`` file. It defines command line options that are passed to GHCi but not to GHC, in other words options that apply when debugging in REPL mode but not when compiling a release build. This is used in ``./src/Config.hs`` to change the working directory to ``./Sandbox`` when experimenting interactively with the synchronisation algorithm.
-
 ## Roadmap
 
 Just a list of improvements, things to do and ideas to explore. No particular order. No deadlines.
@@ -131,3 +109,5 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 * Write a better documentation :-)
 
 Suggestions are welcome. My goal is to keep this application as simple and minimalist as possible. "Make each program do one thing well" says the Unix philosophy!
+
+You can also check the [wiki page](https://github.com/PascalLG/Nubo/wiki) if you are looking for more technical informations.
