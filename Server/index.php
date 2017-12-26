@@ -95,7 +95,7 @@
     if (!file_exists($glo_dbname)) {
         echo <<<EOT
 <div style="width: 500px;">
-<p>Welcome to Nubo!</p>
+<h2>Welcome to Nubo!</h2>
 <p>To finalize the installation of your storage space, you must define a password that will be used both to cipher your data and to restrict access of your cloud to authorised users. Chose it wisely! There is no way to recover if you forget it.</p>
 EOT;
         if (isset($error)) {
