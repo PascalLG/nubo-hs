@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="2.0.0.0"
+VERSION="2.0.0.3"
 BUILDPATH=../Client/.stack-work/install/x86_64-osx/lts-8.21/8.0.2/bin/nubo-exe
 
 # Check we are root

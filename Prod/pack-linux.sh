@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="2.0.0.0"
+VERSION="2.0.0.3"
 BUILDPATH=../Client/.stack-work/install/x86_64-linux/lts-8.21/8.0.2/bin/nubo-exe
 
 # Check we are root
@@ -20,15 +20,15 @@ fi
 rm nubo.deb > /dev/null 2>&1
 
 # Prepare the package content
-mkdir -p "nubo/usr/local/bin"
-cp $BUILDPATH nubo/usr/local/bin/nubo
-strip nubo/usr/local/bin/nubo
-chmod 755 nubo/usr/local/bin/nubo
-chown -R root:root nubo
+mkdir -p "/tmp/nubo/usr/local/bin"
+cp $BUILDPATH /tmp/nubo/usr/local/bin/nubo
+strip /tmp/nubo/usr/local/bin/nubo
+chmod 755 /tmp/nubo/usr/local/bin/nubo
+chown -R root:root /tmp/nubo
 
 # Prepare the package metadata
-mkdir -p "nubo/DEBIAN"
-cat << EOF > nubo/DEBIAN/control
+mkdir -p "/tmp/nubo/DEBIAN"
+cat << EOF > /tmp/nubo/DEBIAN/control
 Package: nubo
 Version: $VERSION
 Section: base
@@ -40,7 +40,10 @@ Homepage: https://github.com/PascalLG/Nubo
 EOF
 
 # Build the package
+pushd /tmp > /dev/null
 dpkg-deb --build nubo
+popd > /dev/null
+mv /tmp/nubo.deb .
 
 # Remove temporary files
-rm -rf nubo
+rm -rf /tmp/nubo
