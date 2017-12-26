@@ -121,7 +121,7 @@ buildFileList root = do
 getRecursiveContents :: FilePath -> UFilePath -> IO [(FilePath, UFilePath, Either Error Bool)]
 getRecursiveContents topdir utopdir = do
     names <- filter (`notElem` ignoredFiles) <$> getDirectoryContents topdir
-    let normalised = map (normalize NFD . T.pack) names
+    let normalised = map (normalize NFC . T.pack) names
     let casefolded = map T.toCaseFold normalised
     let freq = M.fromListWith (+) [(x, 1) | x <- casefolded]
     concat <$> mapM (partition freq) (zip3 names normalised casefolded)

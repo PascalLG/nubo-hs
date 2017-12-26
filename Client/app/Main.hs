@@ -23,6 +23,7 @@
 
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(..))
+import Config
 import Error
 import CmdAuth
 import CmdHelp
@@ -37,7 +38,9 @@ import CmdSync
 --
 main :: IO ()
 main = do
+    cp <- setCodePageUTF8
     status <- getArgs >>= dispatch
+    restoreCodePage cp
     exitWith $ if status == StatusOK then ExitSuccess
                                      else ExitFailure (fromEnum status)
 

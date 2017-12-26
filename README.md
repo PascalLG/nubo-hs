@@ -2,26 +2,26 @@
 
 ## Introduction
 
-Nubo is a self-hosted file sharing application. It currently runs on macOS and Linux. Support for Windows should not require much work and is expected soon.
+Nubo is a self-hosted file sharing application. It currently runs on macOS and Linux. Support for Windows is expected soon.
 
 It consists of two applications:
 
 * A cloud part, which is found in the Server directory. It is a small PHP application that must be installed on a server.
-* A client part, which is found in the Client directory. It is a command line application that must be installed on every computer that synchronises with the cloud.
+* A client part, which is found in the Client directory. It is a command line application that must be installed on every computer that want to synchronise with the cloud.
 
 Basically nubo runs as any other file sharing solution. You drop files into a special folder and they auto-magically appear on all other computers of the same cloud. There are some significant differences though. (Actually I would not have written nubo if existing solutions exactly suited my needs!)
 
-* Synchronisation between your local computer and the cloud is triggered by launching a command line application. Having an "on demand" instead of a continuous synchronisation avoids unnecessary network activity when you create or save files very often. (Think of working on and compiling a software project directly from your nubo drive, for example.) It also allows scripting, be it with cron, AppleScript or any other tool.
+* Synchronisation between your local computer and the cloud is triggered by launching a command line application. Having an "on demand" instead of a continuous synchronisation avoids unnecessary network activity when you create or save files very often. (Think of working on and compiling a software project directly from your nubo drive, for example.) It also allows scripting, be it with cron, bash, Python, AppleScript or any other tool.
 
 * Symlinks are fully resolved. To synchronise a file or a folder, no need to copy it on the nubo drive: just create an alias or a symbolic link to it. Note that this is a hazardous feature though: you can easily have nubo deleting content directly in your personal folder via a symlink, or entering an infinite loop if symlink resolution leads to a cycle.
 
-* End-to-end encryption with AES 256 in CTR mode. The key is never stored on the server. Your data remains safe even if your server is compromised. The counterpart is that this architecture forbids implementation of a web sharing feature à la Dropbox.
+* End-to-end encryption with AES 256 in CTR mode. The key is never stored on the server. Your data remains safe even if your server is compromised. (The counterpart is that this architecture forbids implementation of a web sharing feature à la Dropbox, but I can live with that.)
 
-* You can add filter patterns (on a computer basis) to avoid synchronising specific files. For example, you may want to ignore all ``.o`` files if you happen to compile a C project directly from your nubo drive. Or you may not want to download that very personal file on your business computer.
+* You can add filter patterns (on a computer basis) to avoid synchronising specific files. For example, you may want to ignore all ``.o`` files if you happen to compile a C project directly from your nubo drive. Or you may not want to share files between your personal and your business computers, except for that folder with very personal content.
 
 * Unlike other similar applications, the nubo configuration is not stored globally but in a hidden file in each nubo drive. This means you can have as many nubo drives as you want on your computer, each synchronising with a different server. 
 
-* Nubo silently ignores the following files and directories: ``.DS_Store``, ``Icon\\r``, ``.cabal-sandbox``, ``cabal.sandbox.config``, ``.stack-work``, ``.git``, ``desktop.ini`` and ``thumbs.db``. All these files are only relevant for a given computer and there is no point in transfering them on another computer.
+* Nubo silently ignores the following files and directories: ``.DS_Store``, ``Icon\\r``, ``.cabal-sandbox``, ``cabal.sandbox.config``, ``.stack-work``, ``.git``, ``desktop.ini`` and ``thumbs.db``. All these files are only relevant for a given computer (mostly because they store absolute paths) and there is no point in transfering them on another computer.
 
 * Files with a non-portable name trigger an error. Non portable names include: characters that are not supported on all platforms, reserved keywords, reserved Windows peripheral names, and names that may conflict once transferred on a case insensitive file system. Files bigger than 300Mo also trigger an error.
 
@@ -31,7 +31,7 @@ Warning: use nubo at your own risk. By nature this software may alter or delete 
 
 ### Server
 
-Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a connection that is secured with TLS. Files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
+Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection. Files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
 
 To install your server:
 
@@ -50,9 +50,9 @@ The client is available as a macOS package for the macOS platform and as a Debia
 * Open your server URL in a browser.
 * Enter your cloud password to log in.
 * At the bottom of the page, a section should provide a link to download the package for your platform.
-* Once downloaded, install that package the usual way.
+* Once downloaded, install that package the usual way. On most systems, that boils down to double-clicking the file.
 
-You now have to create a nubo drive. This is the special folder that will be synchronised with your cloud.
+You now have to create a nubo drive. This is the special folder that will synchronise with your cloud.
 
 * Create an empty subfolder anywhere you wish below your home directory. For example, you could choose ``~/Nubo`` or ``~/Documents/NuboDrive``.
 * Open a terminal and change the current directory to that folder. For example: ``cd ~/Nubo``.
@@ -61,6 +61,8 @@ You now have to create a nubo drive. This is the special folder that will be syn
 * Enter your cloud password.
 
 Et voilà! You are ready to add content to your nubo folder and synchronise it with your cloud.
+
+Note: on Windows 10, nubo may crash with an error message about certificate validation. Just open once your cloud URL with Edge to fix this issue.
 
 ## Usage
 
@@ -88,7 +90,7 @@ For more information about patterns and how to manage them, type ``nubo help ign
 
 Authentication is performed once with the ``nubo init`` command. Nubo then uses a temporary token that changes after each transaction to ensure subsequent authentications. However, that token may become invalid, either because it expires or because of an unexpected problem. In such a case, you must authenticate again with the ``nubo auth`` command. You will be asked for your cloud password.
 
-Authentication issues are mostly related to disconnections while synchronising. In such a case, the server processes a query, invalidates the current token and generates a new one, but the client is never aware of that new token because the connection is lost before it has a chance to receive the server response.
+Authentication issues are mostly related to network disconnections while synchronising. In such a case, the server processes a query, invalidates the current token and generates a new one, but the client is never aware of that new token because the connection is lost before it has a chance to receive the server response.
 
 ## Compiling Nubo
 
@@ -108,7 +110,7 @@ The client application is a regular Haskell project based on Stack and Cabal. If
 
 Once you have a running Haskell compiler, to build nubo: open a terminal, change directory to ``./Client`` and run ``stack build``. To run unit tests, type ``stack test``. The ``pack-macos.sh`` and ``pack-linux.sh`` scripts in the ``./Prod`` directory are then used to generate macOS and Debian packages.
 
-Although I have not tested yet, I expect compiling on Windows requires a bit more work, mainly because some libraries that are common on UNIX-like systems are missing by default on Windows. More on that later.
+Compilation on Windows requires a lit bit more work. First you must [download the source code and precompiled DLLs](http://sqlite.org/download.html) for SQLite 3. Copy all these files into a folder, for example ``c:\\sqlite``. Also copy the DLLs into ``c:\\Windows\\System32``. Then, to build nubo: open a terminal, change directory to ``.\\Client`` and run ``stack build --extra-dirs-lib=c:\\sqlite --extra-include-dirs=c:\\sqlite``. Note: support for Windows is still experimental. There is no installer, some minor features like the fancy colours in the nubo output are not supported yet, and due to [this bug](https://ghc.haskell.org/trac/ghc/ticket/4471), display problems are expected with filenames containing non-ASCII characters.
 
 Note that the source directory includes a hidden ``.ghci`` file. It defines command line options that are passed to GHCi but not to GHC, in other words options that apply when debugging in REPL mode but not when compiling a release build. This is used in ``./src/Config.hs`` to change the working directory to ``./Sandbox`` when experimenting interactively with the synchronisation algorithm.
 
@@ -124,7 +126,7 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 * Refactor using the more robust Path package for filename handling instead of System.Filepath
 * Refactor the Archive module so it can be unit tested
 * Create a macOS application to encapsulate the command line into a nice GUI
-* Build a Windows version (should work out-of-the-box but probably requires installation of a few DLLs on the user's computer)
+* Improve the Windows version and provide an MSI installer
 * Write a better documentation :-)
 
-Suggestions welcome. My goal is to keep this application as simple and minimalist as possible: "make each program do one thing well."
+Suggestions are welcome. My goal is to keep this application as simple and minimalist as possible. "Make each program do one thing well" says the Unix philosophy!

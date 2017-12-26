@@ -39,6 +39,7 @@ import Network.HTTP.Client
 import Network.HTTP.Types.Header (hContentLength)
 import Text.Printf
 import Data.IORef
+import Config
 import PrettyPrint
 import Misc
 import Error
@@ -70,8 +71,8 @@ callWebService cmd params bar = do
                                                       ("params", params), 
                                                       ("api", MsgInteger apiLevel)]
                                                        ++ token))
-                                         (if bar == ProgressSend then progress else progress')
-                                         (if bar == ProgressReceive then progress else progress'))
+                                         (if bar == ProgressSend && hasAnsiSupport then progress else progress')
+                                         (if bar == ProgressReceive && hasAnsiSupport then progress else progress'))
 
     case result >>= decodeMsgPack of
         Left err  -> return $ Left err
@@ -193,7 +194,7 @@ progress current = do
             let text = show value
             liftIO $ putStr ("\r" ++
                             (replicate (4 - length text) ' ') ++ text ++ " % |" ++
-                            (foreColor AnsiYellow (replicate pos '•')) ++ (replicate (50 - pos) '◦') ++
+                            (foreColor AnsiYellow (replicate pos '#')) ++ (replicate (50 - pos) '-') ++
                             "|  ")
     else do
         -- Total number of bytes to transfer is unknown. Display
@@ -204,7 +205,7 @@ progress current = do
             let pos = if x > 46 then 92 - x else x where x = value `mod` 92
             liftIO $ putStr ("\r" ++
                             (printf "%7.1f Mb |" (((fromIntegral current) / 1048576.0) :: Double)) ++
-                            (replicate pos '◦') ++ (foreColor AnsiYellow "••••") ++ (replicate (46 - pos) '◦') ++
+                            (replicate pos '-') ++ (foreColor AnsiYellow "####") ++ (replicate (46 - pos) '-') ++
                             "|  ")
 
 -- | Do not display a progress bar. Function with the same

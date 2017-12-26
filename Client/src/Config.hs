@@ -27,14 +27,26 @@ module Config (
       nuboDatabase
     , rootFolder
     , hasAnsiSupport
+    , hideFile
+    , setCodePageUTF8
+    , restoreCodePage
     , getWorkingDirectory
 ) where
     
+#if defined(mingw32_HOST_OS)
+import System.Win32.File (getFileAttributes, setFileAttributes, fILE_ATTRIBUTE_HIDDEN)
+import System.Win32.Console (getConsoleOutputCP, setConsoleOutputCP)
+import System.IO (hSetEncoding, stdout, stderr, utf8)
+import Data.Bits ((.|.))
+#else
+import System.Directory (doesDirectoryExist)
 import System.Environment (lookupEnv)
-import System.Directory (getCurrentDirectory, doesDirectoryExist)
 import Control.Applicative (empty)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe
+#endif
+
+import System.Directory (getCurrentDirectory)
 
 -----------------------------------------------------------------------------
 -- Configuration parameters that depend on the platform and the mode (debug
@@ -66,6 +78,43 @@ hasAnsiSupport :: Bool
 hasAnsiSupport = False
 #else
 hasAnsiSupport = True
+#endif
+
+-- | Set the hidden bit of the given file. This is only
+-- required when running on Windows.
+--
+hideFile :: FilePath -> IO ()
+#if defined(mingw32_HOST_OS)
+hideFile path = do
+    attr <- getFileAttributes path
+    setFileAttributes path (attr .|. fILE_ATTRIBUTE_HIDDEN)
+#else
+hideFile _ = return ()
+#endif
+
+-- | Change the console code page to UTF-8, configure the
+-- standard outputs and return the previous code page. This
+-- operation is only needed when running on Windows.
+--
+setCodePageUTF8 :: IO Int
+#if defined(mingw32_HOST_OS)
+setCodePageUTF8 = do
+    old <- getConsoleOutputCP
+    setConsoleOutputCP 65001
+    hSetEncoding stdout utf8
+    hSetEncoding stderr utf8
+    return (fromIntegral old)
+#else
+setCodePageUTF8 = return 0
+#endif
+
+-- | Restore the console code page. Windows only.
+--
+restoreCodePage :: Int -> IO ()
+#if defined(mingw32_HOST_OS)
+restoreCodePage cp = setConsoleOutputCP (fromIntegral cp)
+#else
+restoreCodePage _ = return ()
 #endif
 
 -----------------------------------------------------------------------------
