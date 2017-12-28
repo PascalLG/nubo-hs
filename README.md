@@ -31,7 +31,7 @@ Basically nubo runs as any other file sharing solution. You drop files into a sp
 
 ### Server
 
-Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection: files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
+Nubo can be installed on any 64-bit server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection: files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
 
 To install your server:
 
