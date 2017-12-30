@@ -27,7 +27,7 @@ module Config (
       nuboDatabase
     , rootFolder
     , hasAnsiSupport
-    , hideFile
+    , setDatabaseAttributes
     , setCodePageUTF8
     , restoreCodePage
     , getWorkingDirectory
@@ -44,6 +44,10 @@ import System.Environment (lookupEnv)
 import Control.Applicative (empty)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe
+#if !defined(DEBUG)
+import System.Posix.Files (setFileMode, ownerReadMode, ownerWriteMode)
+import Data.Bits ((.|.))
+#endif
 #endif
 
 import System.Directory (getCurrentDirectory)
@@ -80,16 +84,20 @@ hasAnsiSupport = False
 hasAnsiSupport = True
 #endif
 
--- | Set the hidden bit of the given file. This is only
--- required when running on Windows.
+-- | Set suitable attributes for the database file. On UNIX,
+-- we chmod 600 to avoid other users can access sensitive
+-- information. On Windows, we hide the file. To help debugging, 
+-- we do nothing special when in running from GHCi.
 --
-hideFile :: FilePath -> IO ()
-#if defined(mingw32_HOST_OS)
-hideFile path = do
+setDatabaseAttributes :: FilePath -> IO ()
+#if defined(DEBUG)
+setDatabaseAttributes _ = return ()
+#elif defined(mingw32_HOST_OS)
+setDatabaseAttributes path = do
     attr <- getFileAttributes path
     setFileAttributes path (attr .|. fILE_ATTRIBUTE_HIDDEN)
 #else
-hideFile _ = return ()
+setDatabaseAttributes path = setFileMode path (ownerReadMode  .|. ownerWriteMode)
 #endif
 
 -- | Change the console code page to UTF-8, configure the

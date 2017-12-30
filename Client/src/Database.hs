@@ -104,7 +104,7 @@ createDBAndRun action = bracket create cleanup exec
 
         cleanup :: Connection -> IO ()
         cleanup db = disconnect db >>
-                     hideFile nuboDatabase
+                     setDatabaseAttributes nuboDatabase
 
         exec :: Connection -> IO ExitStatus
         exec db = newEnvTLS >>= \env -> 
