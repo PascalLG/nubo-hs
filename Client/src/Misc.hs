@@ -22,119 +22,17 @@
 -----------------------------------------------------------------------------
 
 module Misc (
-      Env
-    , EnvIO
-    , newEnv
-    , newEnvTLS
-    , setEnvConnection
-    , setEnvPath
-    , Option(..)
-    , parseArgs
-    , promptUserInput
+      promptUserInput
     , randomBytes
     , (<&&>)
     , dropWhileEnd
 ) where
 
-import System.IO
-import System.FilePath (FilePath)
+import System.IO (hFlush, hGetEcho, hSetEcho, stdout, stdin)
 import Crypto.Random (getSystemDRG, randomBytesGenerate)
 import Control.Monad (when)
-import Control.Monad.Reader (ReaderT)
 import Control.Exception (bracket_)
-import Data.List (nub)
 import qualified Data.ByteString as B
-import qualified Database.HDBC.Sqlite3 as SQL
-import qualified Network.HTTP.Client as H
-import qualified Network.HTTP.Client.TLS as H
-import Error
-
------------------------------------------------------------------------------
--- Environment.
-
--- | Application global state that is passed through a Reader monad
--- to all functions that require it.
---
-type Env = (Maybe SQL.Connection, Maybe H.Manager, Maybe FilePath)
-type EnvIO = ReaderT Env IO
-
--- | Build an empty environment.
---
-newEnv :: Env
-newEnv = (Nothing, Nothing, Nothing)
-
--- | Build an environment containing a TLS manager.
---
-newEnvTLS :: IO Env
-newEnvTLS = H.newManager H.tlsManagerSettings >>= \m -> return (Nothing, Just m, Nothing)
-
--- | Set the database connection in an existing environment.
---
-setEnvConnection :: SQL.Connection -> Env -> Env
-setEnvConnection db (_, x, y) = (Just db, x, y)
-
--- | Set the database path in an existing environment.
---
-setEnvPath :: FilePath -> Env -> Env
-setEnvPath path (x, y, _) = (x, y, Just path)
-
------------------------------------------------------------------------------
--- GNU style command line option handling.
-
--- | An enumeration of all possible options the application supports.
---
-data Option =
-      OptionDry
-    | OptionForce
-    | OptionDelete
-    | OptionTheirs
-    | OptionOurs
-    deriving (Show, Ord, Eq)
-
--- | Map between option flags, option letters and option full names.
---
-supportedOptions :: [(Option, Char, String)]
-supportedOptions = [ ( OptionDry,    'd', "dry"    )
-                   , ( OptionForce,  'f', "force"  )
-                   , ( OptionDelete, 'd', "delete" )
-                   , ( OptionTheirs, 't', "theirs" )
-                   , ( OptionOurs,   'o', "ours"   )]
-
--- | Lookup a short option (from its letter).
---
-lookups :: Char -> [(Option, Char, String)] -> Either Error Option
-lookups key [] = Left $ ErrUnsupportedOption ('-':key:[])
-lookups key ((opt, name, _):opts)
-    | key == name = Right opt
-    | otherwise   = lookups key opts
-
--- | Lookup a long option (from its full name).
---
-lookupl :: String -> [(Option, Char, String)] -> Either Error Option
-lookupl key [] = Left $ ErrUnsupportedOption ("--" ++ key)
-lookupl key ((opt, _, name):opts)
-    | key == name = Right opt
-    | otherwise   = lookupl key opts
-
--- | Parse the command line. If an unknown or unsupported option is
--- encountered, return an appropriate error message. Otherwise, return
--- the list of recognized options and the list of remaining parameters.
---
-parseArgs :: [String] -> [Option] -> Either Error ([Option], [String])
-parseArgs cmdline optlist = parse cmdline >>= \(opts, params) -> Right (nub opts, params)
-    where
-        parse :: [String] -> Either Error ([Option], [String])
-        parse []                   = Right ([], [])
-        parse (('-':'-':opt):args) = lookupl opt supported >>= \r -> parse args >>= \(xs, ys) -> Right (r:xs, ys)
-        parse (('-':opt):args)     = parse' opt >>= \rs -> parse args >>= \(xs, ys) -> Right (rs ++ xs, ys)
-        parse args                 = Right ([], args)
-
-        parse' :: String -> Either Error [Option]
-        parse' []     = Right []
-        parse' (c:cs) = lookups c supported >>= \r -> parse' cs >>= \xs -> Right (r:xs)
-
-        supported :: [(Option, Char, String)]
-        supported = filter (\(opt, _, _) -> opt `elem` optlist)  supportedOptions
 
 -----------------------------------------------------------------------------
 -- Miscellaneous functions.

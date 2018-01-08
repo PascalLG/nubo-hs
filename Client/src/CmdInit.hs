@@ -32,11 +32,11 @@ import qualified Crypto.Hash as H
 import qualified Data.Text as T
 import Network.HostName (getHostName)
 import Data.ByteArray (convert)
-import Data.Maybe (isNothing, fromJust)
 import Control.Monad.Trans (liftIO)
 import Data.Text.Encoding (encodeUtf8)
 import PrettyPrint
 import Misc
+import Environment
 import Error
 import UUID
 import MsgPack
@@ -47,20 +47,22 @@ import WebService
 
 -- | Parse arguments for the 'init' command.
 --
-cmdInit :: [String] -> IO ExitStatus
-cmdInit args = case parseArgs args [OptionForce] of
-    Left err                 -> putErr err >> return StatusInvalidCommand
-    Right (opts, [])         -> exec opts Nothing Nothing
-    Right (opts, [url])      -> exec opts (Just url) Nothing
-    Right (opts, [url, pwd]) -> exec opts (Just url) (Just pwd)
-    Right (_, (_:_:a:_))     -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
+cmdInit :: [String] -> EnvIO ExitStatus
+cmdInit args = do
+    result <- parseArgsM args [OptionForce]
+    case result of
+        Left err                 -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (opts, [])         -> exec opts Nothing Nothing
+        Right (opts, [url])      -> exec opts (Just url) Nothing
+        Right (opts, [url, pwd]) -> exec opts (Just url) (Just pwd)
+        Right (_, (_:_:a:_))     -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
 
     where
-        exec :: [Option] -> Maybe String -> Maybe String -> IO ExitStatus
-        exec options url pass = findNuboDB >>= \previous ->
-            if isNothing previous || elem OptionForce options then createDBAndRun (doInit url pass)
-                                                              else putErr (ErrAlreadySyncFolder (fromJust previous)) >>
-                                                                   return StatusDatabaseAlreadyExists
+        exec :: [Option] -> Maybe String -> Maybe String -> EnvIO ExitStatus
+        exec options url pass = liftIO findNuboDB >>= \previous ->
+            case previous of
+                Just p | not (elem OptionForce options) -> putErr (ErrAlreadySyncFolder p) >> return StatusDatabaseAlreadyExists
+                _                                       -> createDBAndRun $ doInit url pass
 
 -- | Execute the 'init' command. Create the local database (if
 -- necessary), reset all parameters to their default values, ask
@@ -69,6 +71,7 @@ cmdInit args = case parseArgs args [OptionForce] of
 --
 doInit :: Maybe String -> Maybe String -> EnvIO ExitStatus
 doInit opturl optpass = do
+    setupTlsManager
     hostname <- liftIO $ getHostName
     computer <- getConfig CfgComputerUUID
     token <- case computer of
@@ -94,7 +97,7 @@ doInit opturl optpass = do
     result <- callWebService "init" json ProgressNone
     
     case result of
-        Left err -> liftIO $ putErr err >> return StatusConnectionFailed
+        Left err -> putErr err >> return StatusConnectionFailed
         Right resp -> case resp !? "salt" of
             Just (MsgBinary salt) | B.length salt >= 32 -> do
                 let utf8pass = encodeUtf8 (T.pack pass)
@@ -102,13 +105,13 @@ doInit opturl optpass = do
                 saveConfig CfgMasterKey (convert (M.hmacGetDigest hmac) :: B.ByteString)
                 saveConfig CfgReady True
                 return StatusOK
-            _ -> liftIO $ putErr ErrInvalidMasterKey >> return StatusConnectionFailed
+            _ -> putErr ErrInvalidMasterKey >> return StatusConnectionFailed
 
 -----------------------------------------------------------------------------
 
 -- | Print usage for the init command.
 --
-helpInit :: IO ()
+helpInit :: EnvIO ()
 helpInit =  do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo init}} [{y:-f}} | {y:--force}}] [{y:url}} [{y:password}}]]"

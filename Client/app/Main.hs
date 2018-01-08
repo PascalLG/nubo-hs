@@ -23,6 +23,8 @@
 
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(..))
+import Control.Monad.State (evalStateT)
+import Environment
 import Config
 import Error
 import CmdAuth
@@ -38,16 +40,28 @@ import CmdSync
 --
 main :: IO ()
 main = do
-    cp <- setCodePageUTF8
-    status <- getArgs >>= dispatch
-    restoreCodePage cp
+    status <- getArgs >>= run
     exitWith $ if status == StatusOK then ExitSuccess
                                      else ExitFailure (fromEnum status)
 
--- | Parse the command line, start the right command and return
--- its exit status code. 
+-- | Do the actual work. This function is also a convenient entry point
+-- when debugging in the REPL: it takes a raw list of arguments and it
+-- runs in the IO monad.
 --
-dispatch :: [String] -> IO ExitStatus
+run :: [String] -> IO ExitStatus
+run args = do
+    (console, previous) <- setupConsoleMode
+    status <- evalStateT (dispatch args) Env { dbConn = Nothing
+                                             , tlsManager = Nothing
+                                             , rootPath = Nothing
+                                             , consoleMode = console }
+    restoreConsoleMode previous
+    return status
+
+-- | Parse the command line and return the action to execute,
+-- depending on the arguments.
+--
+dispatch :: [String] -> EnvIO ExitStatus
 dispatch args = case args of
     ("init":xs)          -> cmdInit xs
     ("ignore":xs)        -> cmdIgnore xs
@@ -59,6 +73,7 @@ dispatch args = case args of
     ("help":"remote":xs) -> cmdHelp helpRemote xs
     ("help":"sync":xs)   -> cmdHelp helpSync xs
     ("help":"auth":xs)   -> cmdHelp helpAuth xs
+    ("help":xs)          -> cmdHelp printUsage xs -- give a chance to print usage with --ansi option
     _                    -> printUsage >> return StatusInvalidCommand
 
 -----------------------------------------------------------------------------

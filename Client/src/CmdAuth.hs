@@ -29,6 +29,7 @@ module CmdAuth (
 import Data.Maybe (fromJust)
 import Control.Monad.Trans (liftIO)
 import Network.HostName (getHostName)
+import Environment
 import PrettyPrint
 import Misc
 import Error
@@ -41,16 +42,18 @@ import WebService
 
 -- | Parse arguments for the 'auth' command.
 --
-cmdAuth :: [String] -> IO ExitStatus
-cmdAuth args = case parseArgs args [] of
-    Left err           -> putErr err >> return StatusInvalidCommand
-    Right (_, [])      -> exec Nothing
-    Right (_, [pwd])   -> exec (Just pwd)
-    Right (_, (_:a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
+cmdAuth :: [String] -> EnvIO ExitStatus
+cmdAuth args = do
+    result <- parseArgsM args []
+    case result of
+        Left err            -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (_, [])       -> exec Nothing
+        Right (_, [pwd])    -> exec (Just pwd)
+        Right (_, (_:a:_))  -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
 
     where
-        exec :: Maybe String -> IO ExitStatus
-        exec pwd = newEnvTLS >>= \env -> openDBAndRun env (doAuth pwd)
+        exec :: Maybe String -> EnvIO ExitStatus
+        exec pwd = openDBAndRun $ doAuth pwd
 
 -- | Execute the 'auth' command. This is basically the same operation
 -- as 'init', except that we get the cloud URL from the database instead
@@ -58,6 +61,7 @@ cmdAuth args = case parseArgs args [] of
 --
 doAuth :: Maybe String -> EnvIO ExitStatus
 doAuth optpass = do
+    setupTlsManager
     deleteConfig CfgAuthToken
 
     hostname <- liftIO $ getHostName
@@ -69,19 +73,18 @@ doAuth optpass = do
     let json = MsgObject [ ("computer", msgString (show (fromJust token)))
                          , ("hostname", msgString hostname)
                          , ("password", msgString pass)
-                         , ("salt", MsgBool False)
-                         ]
+                         , ("salt", MsgBool False)]
     result <- callWebService "init" json ProgressNone
 
     case result of
-        Left err -> liftIO $ putErr err >> return StatusConnectionFailed
+        Left err -> putErr err >> return StatusConnectionFailed
         Right _  -> return StatusOK
 
 -----------------------------------------------------------------------------
 
 -- | Print usage for the 'auth' command.
 --
-helpAuth :: IO ()
+helpAuth :: EnvIO ()
 helpAuth = do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo auth}} [{y:password}}]"

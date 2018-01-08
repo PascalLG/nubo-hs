@@ -42,12 +42,13 @@ import Database.HDBC
 import Database.HDBC.Sqlite3
 import System.Directory (doesFileExist)
 import System.FilePath
-import Data.Binary
+import Data.Binary (Binary, encode, decode)
 import Data.List (sortBy)
 import Control.Exception (bracket)
-import Control.Monad.Reader
+import Control.Monad.State
 import qualified Data.ByteString as B
 import Config
+import Environment
 import Misc
 import Error
 import Matching
@@ -87,8 +88,8 @@ findNuboDB = getWorkingDirectory >>= find . strip
 -- dropped except for the computer UUID. Then, execute the specified
 -- action in a Reader monad with the database handle.
 --
-createDBAndRun :: EnvIO ExitStatus -> IO ExitStatus
-createDBAndRun action = bracket create cleanup exec
+createDBAndRun :: EnvIO ExitStatus -> EnvIO ExitStatus
+createDBAndRun action = bracketEnvIO create cleanup exec
     where
         create :: IO Connection
         create = do
@@ -103,25 +104,31 @@ createDBAndRun action = bracket create cleanup exec
             return db
 
         cleanup :: Connection -> IO ()
-        cleanup db = disconnect db >>
-                     setDatabaseAttributes nuboDatabase
+        cleanup db = do
+            disconnect db
+            setDatabaseAttributes nuboDatabase
 
-        exec :: Connection -> IO ExitStatus
-        exec db = newEnvTLS >>= \env -> 
-            runReaderT action $ setEnvConnection db env
+        exec :: Connection -> EnvIO ExitStatus
+        exec db = do
+            env <- get
+            put env { dbConn = Just db }
+            action
 
 -- | Open the Nubo database and execute the specified action in the
 -- Reader monad. Print an error message if the database does not
 -- exist.
 --
-openDBAndRun :: Env -> EnvIO ExitStatus -> IO ExitStatus
-openDBAndRun env action = do
-    optpath <- findNuboDB
+openDBAndRun :: EnvIO ExitStatus -> EnvIO ExitStatus
+openDBAndRun action = do
+    optpath <- liftIO findNuboDB
     case optpath of
         Nothing    -> putErr ErrDatabaseNotFound >> return StatusDatabaseNotFound
-        Just path  -> bracket (connectSqlite3 (path </> nuboDatabase))
-                              (disconnect)
-                              (\db -> runReaderT action $ setEnvConnection db $ setEnvPath path env)
+        Just path  -> bracketEnvIO (connectSqlite3 (path </> nuboDatabase))
+                                   (disconnect)
+                                   (\db -> do
+                                       env <- get
+                                       put env { dbConn = Just db, rootPath = Just path }
+                                       action)
 
 -----------------------------------------------------------------------------
 -- Config management.
@@ -171,17 +178,17 @@ getConfigIO config db = do
 -- | Save a configuration parameter in the EnvIO monad.
 --
 saveConfig :: Binary a => Config -> a -> EnvIO ()
-saveConfig config value = ask >>= \(Just db, _, _) -> liftIO $ saveConfigIO config value db
+saveConfig config value = getDbConn >>= \db -> liftIO $ saveConfigIO config value db
 
 -- | Retrieve a configuration parameter in the EnvIO monad.
 --
 getConfig :: Binary a => Config -> EnvIO (Maybe a)
-getConfig config = ask >>= \(Just db, _, _) -> liftIO $ getConfigIO config db
+getConfig config = getDbConn >>= \db -> liftIO $ getConfigIO config db
 
 -- | Delete a configuration parameter in the EnvIO monad.
 --
 deleteConfig :: Config -> EnvIO ()
-deleteConfig config = ask >>= \(Just db, _, _) ->
+deleteConfig config = getDbConn >>= \db ->
     liftIO $ run db "DELETE FROM config WHERE name=?" [toSql (show config)] >>
              commit db
 
@@ -192,9 +199,9 @@ deleteConfig config = ask >>= \(Just db, _, _) ->
 -- raw identifier.
 --
 getPatternList :: EnvIO [(Int, Pattern)]
-getPatternList = ask >>= \(Just db, _, _) -> sortBy comp 
-                                         <$> map dec 
-                                         <$> liftIO (quickQuery' db "SELECT ignore_id, pattern FROM ignore" [])
+getPatternList = getDbConn >>= \db -> sortBy comp 
+                                  <$> map dec 
+                                  <$> liftIO (quickQuery' db "SELECT ignore_id, pattern FROM ignore" [])
     where
         dec :: [SqlValue] -> (Int, Pattern)
         dec [f, h] = (fromSql f, decode (fromSql h))
@@ -208,14 +215,14 @@ getPatternList = ask >>= \(Just db, _, _) -> sortBy comp
 -- existing patterns.
 --
 addPattern :: Pattern -> EnvIO ()
-addPattern pattern = ask >>= \(Just db, _, _) ->
+addPattern pattern = getDbConn >>= \db ->
     liftIO $ run db "INSERT INTO ignore(pattern) VALUES (?)" [toSql (encode (pattern))] >>
              commit db
 
 -- | Delete a pattern from its raw identifier.
 --
 deletePattern :: Int -> EnvIO ()
-deletePattern rawid = ask >>= \(Just db, _, _) ->
+deletePattern rawid = getDbConn >>= \db ->
     liftIO $ run db "DELETE FROM ignore WHERE ignore_id=? LIMIT 1" [toSql rawid] >>
              commit db
 
@@ -226,7 +233,7 @@ deletePattern rawid = ask >>= \(Just db, _, _) ->
 --
 getFileList :: EnvIO [(UFilePath, B.ByteString)]
 getFileList = do
-    (Just db, _, _) <- ask
+    db <- getDbConn
     result <- liftIO $ quickQuery' db "SELECT filename, hash FROM file" []
     return $ map dec result
     where
@@ -238,7 +245,7 @@ getFileList = do
 --
 updateFileInfo :: UFilePath -> B.ByteString -> EnvIO (Either Error ())
 updateFileInfo filename hash = do
-    (Just db, _, _) <- ask
+    db <- getDbConn
     r <- liftIO $ quickQuery' db "SELECT file_id FROM file WHERE filename=? LIMIT 1" [toSql filename]
     _ <- case r of
             [[f]] -> liftIO $ run db "UPDATE file SET hash=? WHERE file_id=?" [toSql hash, f]
@@ -250,7 +257,7 @@ updateFileInfo filename hash = do
 --
 deleteFileInfo :: UFilePath -> EnvIO (Either Error ())
 deleteFileInfo filename = do
-    (Just db, _, _) <- ask
+    db <- getDbConn
     _ <- liftIO $ run db "DELETE FROM file WHERE filename=?" [toSql filename]
     liftIO $ commit db
     return $ Right ()

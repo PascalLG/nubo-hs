@@ -33,15 +33,13 @@ import qualified Data.Text as T
 import qualified Network.HTTP.Client as H
 import Data.ByteString.Builder
 import Control.Exception (bracket_, try)
-import Control.Monad.Reader
 import Control.Monad.State
 import Network.HTTP.Client
 import Network.HTTP.Types.Header (hContentLength)
 import Text.Printf
 import Data.IORef
-import Config
+import Environment
 import PrettyPrint
-import Misc
 import Error
 import MsgPack
 import Database
@@ -60,19 +58,21 @@ callWebService cmd params bar = do
                     Just a  -> [("auth", MsgString a)]
                     Nothing -> []
 
-    (Just url) <- getConfig CfgRemoteURL
-    (_, Just manager, _) <- ask
+    Just url <- getConfig CfgRemoteURL
+    env <- get
+    let Just manager = tlsManager env
+    let cm = consoleMode env
 
-    result <- liftIO $ bracket_ (when (bar /= ProgressNone) (putStr $ showCursor False))
-                                (when (bar /= ProgressNone) (putStr $ "\r" ++ eraseEOL ++ showCursor True))
+    result <- liftIO $ bracket_ (when (bar /= ProgressNone) (putStr $ showCursor cm False))
+                                (when (bar /= ProgressNone) (putStr $ "\r" ++ eraseEOL cm ++ showCursor cm True))
                                 (callAPI manager
                                          (url <//> "sync.php")
                                          (MsgObject ([("cmd", msgString cmd), 
                                                       ("params", params), 
                                                       ("api", MsgInteger apiLevel)]
                                                        ++ token))
-                                         (if bar == ProgressSend && hasAnsiSupport then progress else progress')
-                                         (if bar == ProgressReceive && hasAnsiSupport then progress else progress'))
+                                         (if bar == ProgressSend && cm /= ModeBasic then progress cm else progress')
+                                         (if bar == ProgressReceive && cm /= ModeBasic then progress cm else progress'))
 
     case result >>= decodeMsgPack of
         Left err  -> return $ Left err
@@ -172,7 +172,7 @@ apiLevel = 1
 data ProgressBar = ProgressNone         -- no progress bar
                  | ProgressSend         -- progress bar when uploading data
                  | ProgressReceive      -- progress bar when downloading data
-                 deriving (Show, Eq)
+                 deriving (Eq)
 
 -- | Type signature of a function observing
 -- data transfer.
@@ -181,8 +181,8 @@ type Observer = Int -> StateT (Int, Int) IO ()
 
 -- | Display a progress bar.
 --
-progress :: Observer
-progress current = do
+progress :: ConsoleMode -> Observer
+progress cm current = do
     (size, oldvalue) <- get
     if size /= 0 then do
         -- Total number of bytes to transfer is known. Display a
@@ -194,7 +194,7 @@ progress current = do
             let text = show value
             liftIO $ putStr ("\r" ++
                             (replicate (4 - length text) ' ') ++ text ++ " % |" ++
-                            (foreColor AnsiYellow (replicate pos '#')) ++ (replicate (50 - pos) '-') ++
+                            (foreColor cm AnsiYellow (replicate pos '#')) ++ (replicate (50 - pos) '-') ++
                             "|  ")
     else do
         -- Total number of bytes to transfer is unknown. Display
@@ -205,7 +205,7 @@ progress current = do
             let pos = if x > 46 then 92 - x else x where x = value `mod` 92
             liftIO $ putStr ("\r" ++
                             (printf "%7.1f Mb |" (((fromIntegral current) / 1048576.0) :: Double)) ++
-                            (replicate pos '-') ++ (foreColor AnsiYellow "####") ++ (replicate (46 - pos) '-') ++
+                            (replicate pos '-') ++ (foreColor cm AnsiYellow "####") ++ (replicate (46 - pos) '-') ++
                             "|  ")
 
 -- | Do not display a progress bar. Function with the same

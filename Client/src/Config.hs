@@ -26,24 +26,26 @@
 module Config (
       nuboDatabase
     , rootFolder
-    , hasAnsiSupport
     , setDatabaseAttributes
-    , setCodePageUTF8
-    , restoreCodePage
     , getWorkingDirectory
+    , setupConsoleMode
+    , restoreConsoleMode
 ) where
     
 #if defined(mingw32_HOST_OS)
-import System.Win32.File (getFileAttributes, setFileAttributes, fILE_ATTRIBUTE_HIDDEN)
 import System.Win32.Console (getConsoleOutputCP, setConsoleOutputCP)
-import System.IO (hSetEncoding, stdout, stderr, utf8)
+import System.IO (hIsTerminalDevice, hSetEncoding, stdout, stderr, utf8)
+#if !defined(DEBUG)
 import Data.Bits ((.|.))
+import System.Win32.File (getFileAttributes, setFileAttributes, fILE_ATTRIBUTE_HIDDEN)
+#endif
 #else
 import System.Directory (doesDirectoryExist)
 import System.Environment (lookupEnv)
 import Control.Applicative (empty)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Maybe
+import System.IO (hIsTerminalDevice, stdout)
 #if !defined(DEBUG)
 import System.Posix.Files (setFileMode, ownerReadMode, ownerWriteMode)
 import Data.Bits ((.|.))
@@ -51,12 +53,14 @@ import Data.Bits ((.|.))
 #endif
 
 import System.Directory (getCurrentDirectory)
+import PrettyPrint.Internal
 
 -----------------------------------------------------------------------------
 -- Configuration parameters that depend on the platform and the mode (debug
 -- or release).
 
--- | Name of the database.
+-- | Name of the database. Hidden in production, but regular file
+-- in REPL mode to help debugging.
 --
 nuboDatabase :: String
 #if defined(DEBUG)
@@ -65,8 +69,8 @@ nuboDatabase = "nubo_debug.rdb"
 nuboDatabase = ".nubo.rdb"
 #endif
 
--- | Switch the synchronised folder to a sandbox when debugging to avoid
--- accidentaly corrupting local or remote data.
+-- | Synchronised folder. We switch to a sandbox in REPL mode to
+-- avoid accidentaly corrupting local or remote data.
 --
 rootFolder :: FilePath
 #if defined(DEBUG)
@@ -75,19 +79,13 @@ rootFolder = "../Sandbox"
 rootFolder = "."
 #endif
 
--- | Supports for ANSI escape codes.
---
-hasAnsiSupport :: Bool
-#if defined(mingw32_HOST_OS)
-hasAnsiSupport = False
-#else
-hasAnsiSupport = True
-#endif
+-----------------------------------------------------------------------------
+-- Helper functions whose behaviour depends on the platform.
 
--- | Set suitable attributes for the database file. On UNIX,
--- we chmod 600 to avoid other users can access sensitive
--- information. On Windows, we hide the file. To help debugging, 
--- we do nothing special when in running from GHCi.
+-- | Set suitable attributes for the database file. On UNIX, we chmod 600
+-- to avoid other users can access sensitive information. On Windows, we 
+-- hide the file. We do nothing special when running in REPL mode though,
+-- to help debugging.
 --
 setDatabaseAttributes :: FilePath -> IO ()
 #if defined(DEBUG)
@@ -100,38 +98,9 @@ setDatabaseAttributes path = do
 setDatabaseAttributes path = setFileMode path (ownerReadMode  .|. ownerWriteMode)
 #endif
 
--- | Change the console code page to UTF-8, configure the
--- standard outputs and return the previous code page. This
--- operation is only needed when running on Windows.
---
-setCodePageUTF8 :: IO Int
-#if defined(mingw32_HOST_OS)
-setCodePageUTF8 = do
-    old <- getConsoleOutputCP
-    setConsoleOutputCP 65001
-    hSetEncoding stdout utf8
-    hSetEncoding stderr utf8
-    return (fromIntegral old)
-#else
-setCodePageUTF8 = return 0
-#endif
-
--- | Restore the console code page. Windows only.
---
-restoreCodePage :: Int -> IO ()
-#if defined(mingw32_HOST_OS)
-restoreCodePage cp = setConsoleOutputCP (fromIntegral cp)
-#else
-restoreCodePage _ = return ()
-#endif
-
------------------------------------------------------------------------------
--- Helper functions whose behaviour depends on the platform.
-
 -- | Retrieve the current working directory. On Unix platforms, we prefer
 -- reading the environment variable $PWD rather than calling getcwd(), because
--- the latter resolves symlinks. This causes Database.findNuboDB to fail
--- when nubo is called from a symlink'd directory.
+-- the latter resolves symlinks, which may cause Database.findNuboDB to fail.
 --
 getWorkingDirectory :: IO FilePath
 #if defined(mingw32_HOST_OS)
@@ -148,6 +117,42 @@ getWorkingDirectory = do
         check path = do
             ok <- lift $ doesDirectoryExist path
             if ok then return path else empty
+#endif
+
+-- | Change the console code page to UTF-8, configure the
+-- standard outputs and return the previous code page. This
+-- operation is only needed when running on Windows.
+--
+#if defined(mingw32_HOST_OS)
+setupConsoleMode :: IO (ConsoleMode, (Int, Int))
+setupConsoleMode = do
+    hSetEncoding stdout utf8
+    hSetEncoding stderr utf8
+    istty <- hIsTerminalDevice stdout
+    if istty then do
+                old <- getConsoleOutputCP
+                setConsoleOutputCP 65001
+                return (ModeBasic, (fromIntegral old, 0))
+            else do
+                return (ModeBasic, (0, 0))
+#else
+setupConsoleMode :: IO (ConsoleMode, ())
+setupConsoleMode = do
+    istty <- hIsTerminalDevice stdout
+    isdumb <- maybe False (== "dumb") <$> lookupEnv "TERM"
+    return (if istty && not isdumb then ModeXTerm else ModeBasic, ())
+--    where
+--        isDumb :: IO Bool
+--        isDumb = maybe False (== "dumb") <$> lookupEnv "TERM"
+#endif
+
+#if defined(mingw32_HOST_OS)
+restoreConsoleMode :: (Int, Int) -> IO ()
+restoreConsoleMode (cp, _) = do
+    if cp /= 0 then setConsoleOutputCP (fromIntegral cp) else return ()
+#else
+restoreConsoleMode :: () -> IO ()
+restoreConsoleMode _ = return ()
 #endif
 
 -----------------------------------------------------------------------------

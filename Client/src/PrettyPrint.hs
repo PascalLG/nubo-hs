@@ -22,135 +22,52 @@
 -----------------------------------------------------------------------------
 
 module PrettyPrint (
-      AnsiColor(..)
+      ConsoleMode(..)
+    , AnsiColor(..)
     , foreColor
     , showCursor
     , eraseEOL
     , putLine
 ) where
 
-import Data.Maybe (isJust, fromJust)
-import Data.List (uncons)
-import Config
+import Control.Monad.State (get)
+import Control.Monad.Trans (liftIO)
+import Environment
+import PrettyPrint.Internal
 
 -----------------------------------------------------------------------------
-
--- | Supported colours.
---
-data AnsiColor = AnsiBlack
-               | AnsiRed
-               | AnsiGreen
-               | AnsiYellow
-               | AnsiBlue
-               | AnsiMagenta
-               | AnsiCyan
-               | AnsiWhite
-               deriving(Eq, Enum)
-
--- | Associate each colour with a letter. (Except for black
--- since we probably won't print anything in that colour.)
---
-colors :: [(Char, AnsiColor)]
-colors = [ ('c', AnsiCyan)
-         , ('m', AnsiMagenta)
-         , ('y', AnsiYellow)
-         , ('r', AnsiRed)
-         , ('g', AnsiGreen)
-         , ('b', AnsiBlue)
-         , ('w', AnsiWhite)
-         ]
 
 -- | Surround text with the required ANSI escape sequences to print
 -- it in the specified colour. (This is not reentrant, due to the
 -- way ANSI escape sequences work.)
 --
-foreColor :: AnsiColor -> String -> String
-foreColor color text
-    | hasAnsiSupport = (ansiCodeForColor color) ++ text ++ "\ESC[39m"
-    | otherwise      = text
-
--- | Return the ANSI escape sequence for the specified foreground
--- colour.
---
-ansiCodeForColor :: AnsiColor -> String
-ansiCodeForColor color = "\ESC[" ++ (show (30 + fromEnum color)) ++ "m"
+foreColor :: ConsoleMode -> AnsiColor -> String -> String
+foreColor ModeBasic _     text = text
+foreColor _         color text = (ansiCodeForColor color) ++ text ++ "\ESC[39m"
 
 -- | Return the ANSI escape sequence that shows/hides the cursor
 -- on the terminal.
 --
-showCursor :: Bool -> String
-showCursor b
-    | hasAnsiSupport = if b then "\ESC[?25h" else "\ESC[?25l"
-    | otherwise      = ""
+showCursor :: ConsoleMode -> Bool -> String
+showCursor ModeBasic _ = ""
+showCursor _         b = if b then "\ESC[?25h" else "\ESC[?25l"
 
 -- | Return the ANSI escape sequence that erases the terminal to
 -- the end of the current line.
 --
-eraseEOL :: String
-eraseEOL
-    | hasAnsiSupport = "\ESC[K"
-    | otherwise      = ""
+eraseEOL :: ConsoleMode -> String
+eraseEOL ModeBasic = ""
+eraseEOL ModeXTerm = "\ESC[K"
+eraseEOL ModeWin32 = "\ESC[1K"
 
------------------------------------------------------------------------------
-
--- | Text attributes.
+-- | Print a string containing formatting tags. See @processTags@ in the
+-- PrettyPrint.Internal module for more information.
 --
-data State = State { isBold :: !Bool
-                   , isUnderline :: !Bool
-                   , textColor :: !AnsiColor
-                   }
-
--- | Print a string containing formatting tags. See @processTags@ below
--- for more information about supported tags.
---
-putLine :: String -> IO ()
-putLine = putStrLn . processTags [State { isBold = False, isUnderline = False, textColor = AnsiWhite }]
-
--- | Process formatting tags and generate a string containing ANSI escape
--- sequences. Tags follow the pattern {x:text}} where "x" is a character
--- indicating a text attribute (colour, bold or underline) and "text" is 
--- the string that attribute applies to.
---
-processTags :: [State] -> String -> String
-processTags _ "" = ""
-
-processTags stack ('{':'*':':':cs) = emitEscapeCode old new ++ processTags (new:stack) cs
-    where old = head stack
-          new = old { isBold = True }
-
-processTags stack ('{':'_':':':cs) = emitEscapeCode old new ++ processTags (new:stack) cs
-    where old = head stack
-          new = old { isUnderline = True }
-
-processTags stack ('{':t:':':cs) | isJust color = emitEscapeCode old new ++ processTags (new:stack) cs
-    where  color = lookup t colors
-           old = head stack
-           new = old { textColor = fromJust color }
-
-processTags stack ('}':'}':cs) | length stack > 1 = emitEscapeCode old new ++ processTags rest cs
-    where Just (old, rest) = uncons stack
-          new = head rest
-
-processTags stack (c:cs) = c : processTags stack cs
-
--- | Emit ANSI escape code corresponding to a transition between
--- two states of text attributes.
---
-emitEscapeCode :: State -> State -> String
-emitEscapeCode (State b1 u1 c1) (State b2 u2 c2) 
-    | hasAnsiSupport = emitBold b1 b2 ++ emitUnderline u1 u2 ++ emitColor c1 c2
-    | otherwise      = ""
-    where
-        emitBold False True  = "\ESC[1m"
-        emitBold True  False = "\ESC[22m"
-        emitBold _     _     = ""
-        
-        emitUnderline False True  = "\ESC[4m"
-        emitUnderline True  False = "\ESC[24m"
-        emitUnderline _     _     = ""
-        
-        emitColor co1 co2
-            | co1 /= co2 = ansiCodeForColor co2
-            | otherwise  = ""
+putLine :: String -> EnvIO ()
+putLine text = do
+    cm <- consoleMode <$> get
+    liftIO $ putStrLn $ processTags cm [State { isBold = False
+                                              , isUnderline = False
+                                              , textColor = AnsiWhite }] text
 
 -----------------------------------------------------------------------------

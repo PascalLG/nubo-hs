@@ -29,27 +29,29 @@ module CmdHelp (
 import Data.Version (showVersion)
 import Paths_nubo
 import PrettyPrint
-import Misc
+import Environment
 import Error
 
 -----------------------------------------------------------------------------
 
 -- | Execute the 'help' command.
 --
-cmdHelp :: IO () -> [String] -> IO ExitStatus
-cmdHelp help args = case parseArgs args [] of
-    Left err         -> putErr err >> return StatusInvalidCommand
-    Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
-    Right (_, [])    -> help >> return StatusOK
+cmdHelp :: EnvIO () -> [String] -> EnvIO ExitStatus
+cmdHelp help args = do
+    result <- parseArgsM args []
+    case result of
+        Left err         -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
+        Right (_, [])    -> help >> return StatusOK
 
 -----------------------------------------------------------------------------
 
 -- | Print application usage.
 --
-printUsage :: IO ()
+printUsage :: EnvIO ()
 printUsage = do
     putLine $ "{c:Nubo command line client - Version " ++ (showVersion version) ++ "}}"
-    putLine $ "{c:(c) 2017, Æquans}}"
+    putLine $ "{c:(c) 2018, Æquans}}"
     putLine $ ""
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo}} <{y:command}}> [{y:options}}] [{y:parameters}}]"

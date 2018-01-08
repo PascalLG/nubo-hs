@@ -27,7 +27,10 @@ module Error (
     , ExitStatus(..)
 ) where
 
+import Control.Monad.Trans (liftIO)
+import Control.Monad.State (get)
 import System.IO (hPutStrLn, stderr)
+import Environment
 import PrettyPrint
 
 -----------------------------------------------------------------------------
@@ -83,8 +86,10 @@ data ExitStatus =
 
 -- | Print an error to the standard error output.
 --
-putErr :: Error -> IO ()
-putErr err = hPutStrLn stderr $ foreColor AnsiRed ("error: " ++ show err)
+putErr :: Error -> EnvIO ()
+putErr err = do
+    cm <- consoleMode <$> get
+    liftIO $ hPutStrLn stderr $ foreColor cm AnsiRed ("error: " ++ show err)
 
 -- | Render an error as a string.
 --

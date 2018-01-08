@@ -33,7 +33,7 @@ import Data.Text.Encoding (decodeUtf8)
 import System.Directory (removeFile, removeDirectory, createDirectory)
 import System.IO.Error
 import PrettyPrint
-import Misc
+import Environment
 import Error
 import MsgPack
 import Database
@@ -59,7 +59,7 @@ getActionInfo upath _    (ActionDeleteRemote)     = ("delete remote", Nothing, A
 getActionInfo upath _    (ActionUpdateCache hash) = ("update cache", Nothing, AnsiWhite, updateFileInfo upath hash)
 getActionInfo upath _    (ActionDeleteFromCache)  = ("update cache", Nothing, AnsiWhite, deleteFileInfo upath)
 getActionInfo _     _    (ActionConflict ctype)   = ("conflict", Just (show ctype), AnsiRed, return $ Right ())
-getActionInfo upath _    (ActionError)            = ("error", Just "TODO: message", AnsiRed, deleteFileInfo upath)
+getActionInfo upath _    (ActionError)            = ("error", Just "internal inconsistency", AnsiRed, deleteFileInfo upath)
 
 -- | Upload a file to the cloud.
 --

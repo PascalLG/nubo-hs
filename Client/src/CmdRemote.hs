@@ -28,7 +28,7 @@ module CmdRemote (
 
 import Control.Monad.Trans (liftIO)
 import PrettyPrint
-import Misc
+import Environment
 import Error
 import Database
 
@@ -36,16 +36,19 @@ import Database
 
 -- | Parse arguments for the 'remote' command.
 --
-cmdRemote :: [String] -> IO ExitStatus
-cmdRemote args = case parseArgs args [] of
-    Left err         -> putErr err >> return StatusInvalidCommand
-    Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
-    Right (_, [])    -> openDBAndRun newEnv doRemote
+cmdRemote :: [String] -> EnvIO ExitStatus
+cmdRemote args = do
+    result <- parseArgsM args []
+    case result of
+        Left err         -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
+        Right (_, [])    -> openDBAndRun doRemote
 
 -- | Execute the 'remote' command.
 --
 doRemote :: EnvIO ExitStatus
-doRemote = getConfig CfgRemoteURL >>= \(Just url) -> do
+doRemote = do
+    Just url <- getConfig CfgRemoteURL
     liftIO $ putStrLn url
     return StatusOK
 
@@ -53,7 +56,7 @@ doRemote = getConfig CfgRemoteURL >>= \(Just url) -> do
 
 -- | Print usage for the remote command.
 --
-helpRemote :: IO ()
+helpRemote :: EnvIO ()
 helpRemote = do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo remote}}"

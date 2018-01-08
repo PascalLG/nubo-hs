@@ -27,10 +27,11 @@ module CmdIgnore (
 ) where
 
 import Control.Monad.Trans (liftIO)
+import Control.Monad.State (get)
 import Data.Char (isDigit)
 import Data.Tuple (swap)
 import PrettyPrint
-import Misc
+import Environment
 import Error
 import Database
 import Matching
@@ -39,13 +40,15 @@ import Matching
 
 -- | Parse arguments for the 'ignore' command.
 --
-cmdIgnore :: [String] -> IO ExitStatus
-cmdIgnore args = case parseArgs args [OptionDelete] of
-    Left err -> putErr err >> return StatusInvalidCommand
-    Right (opts, xs)
-        | elem OptionDelete opts -> openDBAndRun newEnv $ deletePatterns xs
-        | null xs                -> openDBAndRun newEnv $ printPatterns
-        | otherwise              -> openDBAndRun newEnv $ addPatterns xs
+cmdIgnore :: [String] -> EnvIO ExitStatus
+cmdIgnore args = do
+    result <- parseArgsM args [OptionDelete]
+    case result of
+        Left err -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (opts, xs)
+            | elem OptionDelete opts -> openDBAndRun $ deletePatterns xs
+            | null xs                -> openDBAndRun $ printPatterns
+            | otherwise              -> openDBAndRun $ addPatterns xs
 
 -- | Print the list of file patterns to ignore. The list is sorted
 -- by pattern and each entry is assigned a rank that can be used
@@ -54,13 +57,14 @@ cmdIgnore args = case parseArgs args [OptionDelete] of
 printPatterns :: EnvIO ExitStatus
 printPatterns = do
     patterns <- getPatternList
-    liftIO $ mapM_ printpat (zip [1..] patterns)
+    cm <- consoleMode <$> get
+    liftIO $ mapM_ (printpat cm) (zip [1..] patterns)
     return StatusOK
     where
-        printpat :: (Int, (Int, Pattern)) -> IO ()
-        printpat (rank, (_, pattern)) = do
+        printpat :: ConsoleMode -> (Int, (Int, Pattern)) -> IO ()
+        printpat cm (rank, (_, pattern)) = do
             let text = (show rank) ++ ": "
-            putStrLn ((replicate (8 - length text) ' ') ++ (foreColor AnsiYellow text) ++ (show pattern))
+            putStrLn ((replicate (8 - length text) ' ') ++ (foreColor cm AnsiYellow text) ++ (show pattern))
 
 -- | Add patterns to the list of files to ignore. If a pattern already
 -- exists, it is ignored.
@@ -71,7 +75,7 @@ addPatterns patterns = exec addpat patterns
         addpat :: String -> EnvIO Bool
         addpat ps = do
             case parsePattern ps of
-                Left err -> liftIO $ putErr err >> return False
+                Left err -> putErr err >> return False
                 Right p  -> do
                     (_, list) <- unzip <$> getPatternList
                     ope <- if p `elem` list then return "ignoring: "
@@ -89,7 +93,7 @@ deletePatterns params = getPatternList >>= \list -> exec (delpat list) params
         delpat :: [(Int, Pattern)] -> String -> EnvIO Bool
         delpat list param = case parse param of
                                     Nothing -> do
-                                        liftIO $ putErr (ErrInvalidPatternRef param)
+                                        putErr (ErrInvalidPatternRef param)
                                         return False
                                     Just uid -> do
                                         deletePattern uid
@@ -118,7 +122,7 @@ exec actions list = do
 
 -- | Print usage for the ignore command.
 --
-helpIgnore :: IO ()
+helpIgnore :: EnvIO ()
 helpIgnore = do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo ignore}}"

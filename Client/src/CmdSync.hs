@@ -29,14 +29,14 @@ module CmdSync (
 import qualified Data.ByteString as B
 import Control.Monad (forM, forM_)
 import Control.Monad.Trans (liftIO)
-import Control.Monad.Reader (ask)
+import Control.Monad.State (get)
 import Data.Text.Encoding (encodeUtf8)
 import Data.List (sortBy, partition, isPrefixOf)
 import System.FilePath (makeRelative, combine)
 import Data.Either (rights)
+import Environment
 import PrettyPrint
 import Config
-import Misc
 import Error
 import MsgPack
 import Database
@@ -50,15 +50,14 @@ import CmdSync.Actions
 
 -- | Parse arguments for the 'sync' command.
 --
-cmdSync :: [String] -> IO ExitStatus
-cmdSync args = case parseArgs args [OptionDry, OptionTheirs, OptionOurs] of
-    Left err            -> putErr err >> 
-                           return StatusInvalidCommand
-    Right (opts, files) -> case priority opts of
-                               Left err -> putErr err >> 
-                                           return StatusInvalidCommand
-                               Right p  -> newEnvTLS >>= \env ->
-                                           openDBAndRun env (doSync (OptionDry `elem` opts) p files)
+cmdSync :: [String] -> EnvIO ExitStatus
+cmdSync args = do
+    result <- parseArgsM args [OptionDry, OptionTheirs, OptionOurs]
+    case result of
+        Left err            -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Right (opts, files) -> case priority opts of
+                                   Left err -> putErr err >> return StatusInvalidCommand
+                                   Right p  -> openDBAndRun $ doSync (OptionDry `elem` opts) p files
     where
         priority :: [Option] -> Either Error SyncPriority
         priority flags
@@ -74,13 +73,15 @@ cmdSync args = case parseArgs args [OptionDry, OptionTheirs, OptionOurs] of
 --
 doSync :: Bool -> SyncPriority -> [String] -> EnvIO ExitStatus
 doSync dry priority params = do
+    setupTlsManager
     result <- callWebService "directory" MsgNull ProgressNone
     case result >>= parseFileList of
         Left err -> do
-            liftIO $ putErr err
+            putErr err
             return StatusInvalidServerResponse
         Right remote' -> do
-            (_, _, Just root) <- ask
+            env <- get
+            let Just root = rootPath env
             (errlist, local'', filemap) <- liftIO $ buildFileList root
             forM_ errlist (\(upath, err) ->
                 printAction AnsiRed "error" (Just (show err)) (makeRelative root (rebuildFilePath filemap upath)))
@@ -106,7 +107,7 @@ doSync dry priority params = do
                 if dry then return True else do
                     ret <- justdoit
                     case ret of
-                        Left err -> liftIO (putErr err) >> return False
+                        Left err -> putErr err >> return False
                         Right _  -> return True)
 
             return $ if (and oks) then StatusOK else StatusSynchronizationFailed
@@ -130,7 +131,9 @@ doSync dry priority params = do
         compareFiles (f1, _) (f2, _) = compare f1 f2
 
         printAction :: AnsiColor -> String -> Maybe String -> FilePath -> EnvIO ()
-        printAction color desc extra path = liftIO $ putStrLn $ foreColor color text
+        printAction color desc extra path = do
+            cm <- consoleMode <$> get
+            liftIO $ putStrLn $ foreColor cm color text
             where
                 eol = case extra of
                     Just t  -> " (" ++ t ++ ")"
@@ -142,7 +145,7 @@ doSync dry priority params = do
 
 -- | Print usage for the remote command.
 --
-helpSync :: IO ()
+helpSync :: EnvIO ()
 helpSync = do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo sync}} [{y:-d}} | {y:--dry}}] [{y:-t}} | {y:--theirs}} | {y:-o}} | {y:--ours}}] [{y:files...}}]"
