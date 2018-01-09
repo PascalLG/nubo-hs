@@ -190,7 +190,7 @@ EOT;
             } else {
                 echo "<p>Sorry, there is no client application for your platform yet.</p>\n";
             }
-            echo "<p class=\"copyright\">© 2017, Æquans - Version ", VERSION, "</p>\n";
+            echo "<p class=\"copyright\">© 2017-2018, Æquans - Version ", VERSION, "</p>\n";
         } catch (NuboException $e) {
             echo "<p>Unexpected error.</p>\n";
         }

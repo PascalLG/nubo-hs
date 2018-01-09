@@ -50,8 +50,8 @@ cmdHelp help args = do
 --
 printUsage :: EnvIO ()
 printUsage = do
-    putLine $ "{c:Nubo command line client - Version " ++ (showVersion version) ++ "}}"
-    putLine $ "{c:(c) 2018, Æquans}}"
+    putLine $ "{c:Nubo command line client - Version " ++ showVersion version ++ "}}"
+    putLine $ "{c:(c) 2017-2018, Æquans}}"
     putLine $ ""
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo}} <{y:command}}> [{y:options}}] [{y:parameters}}]"
