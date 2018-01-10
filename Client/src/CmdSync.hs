@@ -187,6 +187,7 @@ helpSync = do
     putLine $ "    {y:-d}}, {y:--dry}}       Simulate a synchronisation."
     putLine $ "    {y:-t}}, {y:--theirs}}    Resolve conflicts by keeping remote version of files."
     putLine $ "    {y:-o}}, {y:--ours}}      Resolve conflicts by keeping local version of files."
+    putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 
 -----------------------------------------------------------------------------

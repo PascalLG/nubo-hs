@@ -196,7 +196,8 @@ helpIgnore = do
     putLine $ "    supported on all platforms."
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
-    putLine $ "    {y:-d}}, {y:--delete}}  Delete the specified file patterns."
+    putLine $ "    {y:-d}}, {y:--delete}}    Delete the specified file patterns."
+    putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 
 -----------------------------------------------------------------------------

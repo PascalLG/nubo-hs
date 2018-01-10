@@ -103,7 +103,7 @@ helpAuth = do
     putLine $ "    Instead, only enter your password when {y:nubo}} prompts you."
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
-    putLine $ "    None."
+    putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 
 -----------------------------------------------------------------------------

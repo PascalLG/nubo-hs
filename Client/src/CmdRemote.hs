@@ -67,7 +67,7 @@ helpRemote = do
     putLine $ "    with a {y:nubo}} cloud."
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
-    putLine $ "    None."
+    putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 
 -----------------------------------------------------------------------------

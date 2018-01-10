@@ -153,9 +153,10 @@ helpInit =  do
     putLine $ "    Use the {y:nubo sync}} command to perform an actual synchronisation."
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
-    putLine $ "    {y:-f}}, {y:--force}}    Overwrite previous configuration, if any. By default,"
-    putLine $ "                   initialising a nubo cloud in a folder that is already in a"
-    putLine $ "                   nubo cloud raises an error."
+    putLine $ "    {y:-f}}, {y:--force}}     Overwrite previous configuration, if any. By default,"
+    putLine $ "                    initialising a nubo cloud in a folder that is already in a"
+    putLine $ "                    nubo cloud raises an error."
+    putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 
 -----------------------------------------------------------------------------
