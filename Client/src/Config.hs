@@ -34,17 +34,22 @@ module Config (
     
 #if defined(mingw32_HOST_OS)
 import System.Win32.Console (getConsoleOutputCP, setConsoleOutputCP)
+import System.Win32.Types (BOOL, DWORD, HANDLE)
 import System.IO (hIsTerminalDevice, hSetEncoding, stdout, stderr, utf8)
+import Foreign.Ptr (Ptr)
+import Foreign.Marshal (alloca)
+import Foreign.Storable (Storable(..))
+import Control.Monad (when)
 #if !defined(DEBUG)
-import Data.Bits ((.|.))
 import System.Win32.File (getFileAttributes, setFileAttributes, fILE_ATTRIBUTE_HIDDEN)
+import Data.Bits ((.|.))
 #endif
 #else
 import System.Directory (doesDirectoryExist)
 import System.Environment (lookupEnv)
 import Control.Applicative (empty)
 import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Maybe (MaybeT(..))
 import System.IO (hIsTerminalDevice, stdout)
 #if !defined(DEBUG)
 import System.Posix.Files (setFileMode, ownerReadMode, ownerWriteMode)
@@ -119,9 +124,11 @@ getWorkingDirectory = do
             if ok then return path else empty
 #endif
 
--- | Change the console code page to UTF-8, configure the
--- standard outputs and return the previous code page. This
--- operation is only needed when running on Windows.
+-- | Setup the console and try to guess whether it supports ANSI escape
+-- sequences or not. On Windows, this consists in changing the code page
+-- to UTF8 and enabling virtual processing. On UNIX, this consists in 
+-- checking the terminal name. On both, we disable ANSI sequences if the
+-- output is not a tty.
 --
 #if defined(mingw32_HOST_OS)
 setupConsoleMode :: IO (ConsoleMode, (Int, Int))
@@ -130,10 +137,18 @@ setupConsoleMode = do
     hSetEncoding stderr utf8
     istty <- hIsTerminalDevice stdout
     if istty then do
-                old <- getConsoleOutputCP
-                setConsoleOutputCP 65001
-                return (ModeBasic, (fromIntegral old, 0))
-            else do
+                oldcp <- getConsoleOutputCP
+                setConsoleOutputCP 65001 -- code page for UTF-8
+                hout <- cGetStdHandle 0xFFFFFFF5 -- STD_OUTPUT_HANDLE
+                alloca $ \ptr -> do
+                    ok <- cGetConsoleMode hout ptr
+                    if ok then do
+                            oldmode <- peek ptr
+                            ok' <- cSetConsoleMode hout (oldmode .|. 4) -- ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                            return (if ok' then ModeWin32 else ModeBasic, (fromIntegral oldcp, fromIntegral oldmode))
+                          else
+                            return (ModeBasic, (fromIntegral oldcp, 0))
+             else
                 return (ModeBasic, (0, 0))
 #else
 setupConsoleMode :: IO (ConsoleMode, ())
@@ -141,18 +156,49 @@ setupConsoleMode = do
     istty <- hIsTerminalDevice stdout
     isdumb <- maybe False (== "dumb") <$> lookupEnv "TERM"
     return (if istty && not isdumb then ModeXTerm else ModeBasic, ())
---    where
---        isDumb :: IO Bool
---        isDumb = maybe False (== "dumb") <$> lookupEnv "TERM"
 #endif
 
+-- | Restore the console to its initial state. On Windows, it consists
+-- in restoring the code page and disabling virtual processing. On UNIX
+-- there is nothing to to.
+--
 #if defined(mingw32_HOST_OS)
 restoreConsoleMode :: (Int, Int) -> IO ()
-restoreConsoleMode (cp, _) = do
-    if cp /= 0 then setConsoleOutputCP (fromIntegral cp) else return ()
+restoreConsoleMode (cp, mode) = do
+    when (cp /= 0) $ do
+        setConsoleOutputCP (fromIntegral cp)
+    when (mode /= 0) $ do
+        hout <- cGetStdHandle 0xFFFFFFF5
+        _ <- cSetConsoleMode hout (fromIntegral mode)
+        return ()
 #else
 restoreConsoleMode :: () -> IO ()
 restoreConsoleMode _ = return ()
+#endif
+
+-----------------------------------------------------------------------------
+-- Foreign interface to Win32 SDK. (These functions are missing in the
+-- System.Win32 package.)
+
+#if defined(mingw32_HOST_OS)
+
+#if defined(i386_HOST_ARCH)
+#define WINDOWS_CCONV stdcall
+#elif defined(x86_64_HOST_ARCH)
+#define WINDOWS_CCONV ccall
+#else
+#error unknown architecture
+#endif
+
+foreign import WINDOWS_CCONV unsafe "GetConsoleMode"
+    cGetConsoleMode :: HANDLE -> Ptr DWORD -> IO BOOL
+
+foreign import WINDOWS_CCONV unsafe "SetConsoleMode"
+    cSetConsoleMode :: HANDLE -> DWORD -> IO BOOL
+
+foreign import WINDOWS_CCONV unsafe "GetStdHandle"
+    cGetStdHandle :: DWORD -> IO HANDLE
+
 #endif
 
 -----------------------------------------------------------------------------

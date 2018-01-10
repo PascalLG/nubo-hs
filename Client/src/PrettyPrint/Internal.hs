@@ -116,7 +116,7 @@ emitEscapeCode ModeBasic _ _ = ""
 emitEscapeCode _ (State b1 u1 c1) (State b2 u2 c2) = emitBold b1 b2 ++ emitUnderline u1 u2 ++ emitColor c1 c2
     where
         emitBold False True  = "\ESC[1m"
-        emitBold True  False = "\ESC[22m"   -- TODO: maybe not supported on Windows
+        emitBold True  False = "\ESC[22m"
         emitBold _     _     = ""
 
         emitUnderline False True  = "\ESC[4m"
