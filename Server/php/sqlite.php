@@ -106,7 +106,10 @@
         // type (not recommended).
 
         private function bind($statement, $bindings) {
-            if (is_array($bindings)) {
+            if (isset($bindings)) {
+                if (!is_array($bindings)) {
+                    throw new NuboException(ERROR_INTERNAL);
+                }
                 foreach ($bindings as $key => $value) {
                 	$n = strpos($key, '/');
                 	if ($n !== false) {

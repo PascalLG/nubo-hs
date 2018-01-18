@@ -85,7 +85,7 @@
             $ret = ["auth" => "$selector:$validator"];
             if ($params['salt']) {
                 $result = $db->select('SELECT value FROM tbl_config WHERE key="salt" LIMIT 1');
-                if ($row = reset($result)) {
+                if (($row = reset($result)) !== false) {
                     $ret += ["salt" => $row['value']];
                 }
             }
@@ -170,6 +170,14 @@
             @unlink(buildArchiveName($id));
         }
         return [];
+    }
+
+    // Test command. It only returns its parameter unchanged. (This
+    // is called by the client application when initialising with
+    // the --test option.)
+
+    function cmd_test($db, $params) {
+        return ['test' => $params];
     }
 
     //-----------------------------------------------------------------------------

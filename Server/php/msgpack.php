@@ -221,11 +221,20 @@
             }
             $num = unpack('N', substr($this->buffer, $this->offset, 4))[1];
             $this->offset += 4;
-            return ($signed && $num >= 2147483648) ? $num - 4294967296 : $num;
+            if (PHP_INT_SIZE <= 4) {
+                if (!$signed && $num < 0) {
+                    throw new NuboException(ERROR_MSGPACK);
+                }
+            } else {
+                if ($signed && $num >= 2147483648) {
+                    $num -= 4294967296;
+                }
+            }
+            return $num;
         }
 
         private function unpackInt64($signed) {
-            if (!isset($this->buffer[$this->offset + 7])) {
+            if (!isset($this->buffer[$this->offset + 7]) || PHP_INT_SIZE <= 4) {
                 throw new NuboException(ERROR_MSGPACK);
             }
             $num = unpack('J', substr($this->buffer, $this->offset, 8))[1];

@@ -22,7 +22,10 @@
     // THE SOFTWARE.
     //-----------------------------------------------------------------------------
 
-	error_reporting(E_ALL ^ E_NOTICE);
+    ini_set('error_reporting', E_ALL);
+    ini_set('display_errors', 1);
+    ini_set('log_errors', 1);
+
     require_once('php/sqlite.php');
     require_once('php/exception.php');
     require_once("php/helpers.php");
@@ -31,12 +34,12 @@
 
     if (strtolower($_SERVER['REQUEST_METHOD']) == 'post') {
         if (isset($_POST['password1']) && isset($_POST['password2']) && !file_exists($glo_dbname)) {
-        	$pwd1 = stripslashes(trim($_POST['password1']));
-        	$pwd2 = stripslashes(trim($_POST['password2']));
+        	$pwd1 = trim($_POST['password1']);
+        	$pwd2 = trim($_POST['password2']);
             if ($pwd1 != $pwd2) {
                 $error = 'Passwords differ.';
             } else if (strlen($pwd1) < 4) {
-                $error = 'Your password must be at least 4 character long.';
+                $error = 'Your password must be at least 4-character long.';
             } else {
                 @mkdir($glo_dirname);
                 @chmod($glo_dirname, 0770);
@@ -59,7 +62,7 @@
         } else if (isset($_POST['password']) && !isset($_SESSION['login'])) {
             try {
                 $db = new NuboDatabase();
-                $pwd = stripslashes(trim($_POST['password']));
+                $pwd = trim($_POST['password']);
                 $result = $db->select('SELECT value FROM tbl_config WHERE key="password" LIMIT 1');
                 if (($row = reset($result)) !== false && password_verify($pwd, $row['value'])) {
                     $_SESSION['login'] = true;
@@ -70,7 +73,7 @@
                 $error = 'Invalid credentials.';
             }
         }
-    } else if (isset($_GET['logout'])) {
+    } else if (isset($_GET['logout']) || !file_exists($glo_dbname)) {
         unset($_SESSION['login']);
     }
 
@@ -111,7 +114,7 @@ EOT;
         echo "\n";
         if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != 'on') {
             echo <<<EOT
-<div class="warning">Your connection is not secured. To ensure your data privacy and safety, installing Nubo on a server that does not run SSL/TLS is strongly discouraged.</div>
+<div class="warning">Your connection is not secured. To ensure your data privacy and safety, installing Nubo on a host that does not run SSL/TLS is strongly discouraged.</div>
 EOT;
         }
     } else if (!isset($_SESSION['login'])) {
@@ -135,7 +138,7 @@ EOT;
             $result = $db->select('SELECT computer_id, hostname, atime, validator FROM tbl_computer ORDER BY hostname ASC');
             if (count($result)) {
                 echo "<table>";
-                echo "<tr><th>Name</th><th>Last synchronized</th><th>Status</th><th>Actions</th></tr>\n";
+                echo "<tr><th>Name</th><th>Last synchronised</th><th>Status</th><th>Actions</th></tr>\n";
                 foreach ($result as $row) {
                     $name = htmlspecialchars($row['hostname'], ENT_COMPAT, 'UTF-8');
                     echo "<tr>";
@@ -147,12 +150,12 @@ EOT;
                 }
                 echo "</table>\n";
             } else {
-                echo "<p>No computers are synchronized yet with this storage.</p>\n";
+                echo "<p>No computers are synchronised yet with this storage.</p>\n";
             }
             echo "<h2>Files</h2>\n";
             $result = $db->select('SELECT file_id, filename, hash, mtime FROM tbl_file ORDER BY filename ASC');
             $numfiles = count($result);
-            if ($numfiles) {
+            if ($numfiles > 0) {
                 echo "<table>";
                 echo "<tr><th>Filename</th><th>Last modification</th><th>Actions</th></tr>\n";
                 foreach ($result as $row) {
@@ -163,7 +166,7 @@ EOT;
                     echo "<td><a href=\"javascript:deleteFile(${row['file_id']}, '$fullname');\">Delete</a></td>";
                     echo "</tr>\n";
                 }
-                $plural = $numfiles != 1 ? "s" : "";
+                $plural = ($numfiles != 1) ? "s" : "";
                 echo "</table>\n<p>Total: $numfiles file$plural</p>\n";
             } else {
                 echo "<p>This storage does not contain any file yet.</p>\n";

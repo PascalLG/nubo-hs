@@ -47,7 +47,7 @@ cat << 'EOF' >> nubo.php
 EOT;
 
     define('MIN_PHP_VERSION', 7);
-    define('MIN_INT_SIZE', 8);
+    define('MIN_INT_SIZE', 4);
     define('REQUIRED_EXTENSIONS', 'sqlite3 zip');
     define('TMP_FILE', 'tmp.zip');
 

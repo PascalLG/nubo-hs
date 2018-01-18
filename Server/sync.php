@@ -34,7 +34,7 @@
 
     // Webservice entry point. All queries are POST requests, with a msgpack
     // encoded body. The body contains a 'cmd' field that describe the command
-    // to execute, an optional 'params' field and authentication info.
+    // to execute, an optional 'params' field, and authentication info.
 
     try {
         $response = [];
@@ -43,14 +43,14 @@
         $unpacker = new MsgUnpacker(file_get_contents('php://input'));
         $body = $unpacker->unpack();
 
+        if (!is_array($body) || !isset($body['cmd'])) {
+            throw new NuboException(ERROR_ILL_FORMED);
+        }
+
         if (!isset($body['api']) || intval($body['api']) < APILEVEL) {
             throw new NuboException(ERROR_API_OLD_CLIENT);
         } else if (intval($body['api']) > APILEVEL) {
             throw new NuboException(ERROR_API_OLD_SERVER);
-        }
-
-        if (!is_array($body) || !isset($body['cmd'])) {
-            throw new NuboException(ERROR_ILL_FORMED);
         }
 
         $query = 'cmd_' . $body['cmd'];
@@ -71,14 +71,16 @@
         $response += $e->getResponse();
     }
 
+    $db->close();
+    $packer = new MsgPacker();
+    $content = $packer->pack($response);
+
     header('Cache-Control: no-cache, must-revalidate');
     header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
     header('Content-Type: application/x-msgpack');
+    header('Content-Length: ' . strlen($content));
 
-    $packer = new MsgPacker();
-    echo $packer->pack($response);
-
-    $db->close();
+    echo $content;
 
     //-----------------------------------------------------------------------------
 ?>
