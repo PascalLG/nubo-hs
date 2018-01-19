@@ -94,6 +94,7 @@ data Option =
     | OptionTheirs
     | OptionOurs
     | OptionNoAnsi
+    | OptionTest
     deriving (Show, Ord, Eq)
 
 -- | Map between option flags, option letters and option full names.
@@ -104,7 +105,8 @@ supportedOptions = [ ( OptionDry,    'd', "dry"     )
                    , ( OptionDelete, 'd', "delete"  )
                    , ( OptionTheirs, 't', "theirs"  )
                    , ( OptionOurs,   'o', "ours"    )
-                   , ( OptionNoAnsi, 'a', "no-ansi" )]
+                   , ( OptionNoAnsi, 'a', "no-ansi" )
+                   , ( OptionTest,   'u', "test"    )]
 
 -- | Lookup a short option (from its letter).
 --
