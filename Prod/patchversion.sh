@@ -7,7 +7,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 # Check the version number has the right format.
-if ! [[ $1 =~ ^[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}$ ]]; then
+if ! [[ $1 =~ ^[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}$ ]]; then
     echo "Oops. '$1' does not look like a valid version number."
     exit 1
 fi
