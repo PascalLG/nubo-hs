@@ -43,6 +43,7 @@ import PrettyPrint
 import Error
 import MsgPack
 import Database
+import Misc
 
 -----------------------------------------------------------------------------
 -- Web services.
@@ -192,10 +193,10 @@ progress cm current = do
             put (size, value)
             let pos = value `div` 2
             let text = show value
-            liftIO $ putStr ("\r" ++
-                            (replicate (4 - length text) ' ') ++ text ++ " % |" ++
-                            (foreColor cm AnsiYellow (replicate pos '#')) ++ (replicate (50 - pos) '-') ++
-                            "|  ")
+            liftIO $ putStrF ("\r" ++
+                             (replicate (4 - length text) ' ') ++ text ++ " % |" ++
+                             (foreColor cm AnsiYellow (replicate pos '#')) ++ (replicate (50 - pos) '-') ++
+                             "|  ")
     else do
         -- Total number of bytes to transfer is unknown. Display
         -- some bouncing animation.
@@ -203,10 +204,10 @@ progress cm current = do
         when (value /= oldvalue) $ do
             put (size, value)
             let pos = if x > 46 then 92 - x else x where x = value `mod` 92
-            liftIO $ putStr ("\r" ++
-                            (printf "%7.1f Mb |" (((fromIntegral current) / 1048576.0) :: Double)) ++
-                            (replicate pos '-') ++ (foreColor cm AnsiYellow "####") ++ (replicate (46 - pos) '-') ++
-                            "|  ")
+            liftIO $ putStrF ("\r" ++
+                             (printf "%7.1f Mb |" (((fromIntegral current) / 1048576.0) :: Double)) ++
+                             (replicate pos '-') ++ (foreColor cm AnsiYellow "####") ++ (replicate (46 - pos) '-') ++
+                             "|  ")
 
 -- | Do not display a progress bar. Function with the same
 -- type signature as above so it can be used as direct replacement,

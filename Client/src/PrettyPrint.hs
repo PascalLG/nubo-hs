@@ -57,8 +57,7 @@ showCursor _         b = if b then "\ESC[?25h" else "\ESC[?25l"
 --
 eraseEOL :: ConsoleMode -> String
 eraseEOL ModeBasic = ""
-eraseEOL ModeXTerm = "\ESC[K"
-eraseEOL ModeWin32 = "\ESC[1K"
+eraseEOL _         = "\ESC[K"
 
 -- | Print a string containing formatting tags. See @processTags@ in the
 -- PrettyPrint.Internal module for more information.

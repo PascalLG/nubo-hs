@@ -23,6 +23,7 @@
 
 module Misc (
       promptUserInput
+    , putStrF
     , randomBytes
     , (<&&>)
     , dropWhileEnd
@@ -42,12 +43,16 @@ import qualified Data.ByteString as B
 --
 promptUserInput :: String -> Bool -> IO String
 promptUserInput prompt echo = do
-    putStr (prompt ++ " ")
-    hFlush stdout
+    putStrF (prompt ++ " ")
     old <- hGetEcho stdin
     input <- bracket_ (hSetEcho stdin echo) (hSetEcho stdin old) getLine
     when (not echo) (putChar '\n')
     return input
+
+-- | Put a string and immediately flush stdout.
+--
+putStrF :: String -> IO ()
+putStrF s = putStr s >> hFlush stdout
 
 -- | Generate a string of random bytes, using a cryptographically
 -- secure pseudo random number generator.

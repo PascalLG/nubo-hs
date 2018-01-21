@@ -35,7 +35,7 @@ module Config (
 #if defined(mingw32_HOST_OS)
 import System.Win32.Console (getConsoleOutputCP, setConsoleOutputCP)
 import System.Win32.Types (BOOL, DWORD, HANDLE)
-import System.IO (hIsTerminalDevice, hSetEncoding, stdout, stderr, utf8)
+import System.IO (hIsTerminalDevice, hSetEncoding, hFlush, stdout, stderr, utf8)
 import Foreign.Ptr (Ptr)
 import Foreign.Marshal (alloca)
 import Foreign.Storable (Storable(..))
@@ -165,6 +165,7 @@ setupConsoleMode = do
 #if defined(mingw32_HOST_OS)
 restoreConsoleMode :: (Int, Int) -> IO ()
 restoreConsoleMode (cp, mode) = do
+    hFlush stdout -- avoid UTF-8 or ANSI sequences are emitted *after* we restore CP and mode
     when (cp /= 0) $ do
         setConsoleOutputCP (fromIntegral cp)
     when (mode /= 0) $ do

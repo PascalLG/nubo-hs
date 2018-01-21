@@ -34,7 +34,6 @@ import Network.HostName (getHostName)
 import Data.ByteArray (convert)
 import Control.Monad.Trans (liftIO)
 import Data.Text.Encoding (encodeUtf8)
-import System.IO (hFlush, stdout)
 import PrettyPrint
 import Misc
 import Environment
@@ -117,8 +116,7 @@ doInit opturl optpass test = do
 --
 doSanityChecks :: EnvIO ExitStatus
 doSanityChecks = do
-    liftIO $ putStr "Running sanity checks... " >> 
-             hFlush stdout
+    liftIO $ putStrF "Running sanity checks... "
     result <- run testCase
     if result then putLine "{g:OK.}}" >>
                    return StatusOK
