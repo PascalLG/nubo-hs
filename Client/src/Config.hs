@@ -165,7 +165,8 @@ setupConsoleMode = do
 #if defined(mingw32_HOST_OS)
 restoreConsoleMode :: (Int, Int) -> IO ()
 restoreConsoleMode (cp, mode) = do
-    hFlush stdout -- avoid UTF-8 or ANSI sequences are emitted *after* we restore CP and mode
+    hFlush stdout -- avoid UTF-8 or ANSI sequences are 
+    hFlush stderr -- emitted *after* we restore CP and mode
     when (cp /= 0) $ do
         setConsoleOutputCP (fromIntegral cp)
     when (mode /= 0) $ do
