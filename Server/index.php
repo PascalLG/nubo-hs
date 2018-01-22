@@ -190,6 +190,14 @@ EOT;
     <li>Type: sudo dpkg -i nubo.deb</li>
 </ul>
 EOT;
+            } else if (preg_match('/windows/i', $user_agent)) {
+                echo <<<EOT
+<p>To install the latest <strong>nubo</strong> client application for Windows:</p>
+<ul>
+    <li><a href="https://aequans.com/download.php?file=6">Click here</a> to download the nubo installer</li>
+    <li>Double-click the downloaded file to start installation</li>
+</ul>
+EOT;
             } else {
                 echo "<p>Sorry, there is no client application for your platform yet.</p>\n";
             }

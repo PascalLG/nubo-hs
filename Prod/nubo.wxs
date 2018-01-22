@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+    <Product Name='Nubo' Id='D3A62683-0065-4B1B-A906-6931337224C2' UpgradeCode='8E3BB48A-5EAF-48A0-B362-DEC0EEF8390E'
+        Language='1033' Codepage='1252' Version='2.1.0' Manufacturer='Aequans'>
+
+        <Package Id='*' Keywords='Installer' Description="Nubo Installer"
+            Comments='Nubo by Aequans' Manufacturer='Aequans'
+            InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+
+        <Condition Message='This application only runs on 64-bit Windows.'>
+            VersionNT64
+        </Condition>
+
+        <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+        <Property Id='DiskPrompt' Value="Nubo Installation [1]" />
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='ProgramFilesFolder' Name='PFiles'>
+                <Directory Id='INSTALLDIR' Name='Nubo'>
+                    <Component Id='MainExecutable' Guid='CA21D15B-4F27-4849-BBEA-2C687419604F'>
+                        <File Id='NuboExe' Name='nubo.exe' DiskId='1' Source='tmp\nubo.exe' KeyPath='yes' />
+                    </Component>
+                    <Component Id='Sqlite3' Guid='EA9741B2-32FB-4CB0-928F-3DD19E59D5E3'>
+                        <File Id='Sqlite3Dll' Name='sqlite3.dll' DiskId='1' Source='tmp\sqlite3.dll' KeyPath='yes' />
+                    </Component>
+                    <Component Id='EnvPath' Guid='C2235466-24F5-40E0-8FDD-21727A832330'>
+                        <CreateFolder/>
+                        <Environment Id="PATH" Name="PATH" Value="[INSTALLDIR]" Permanent="no" Part="last" Action="set" System="yes" />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id='Complete' Level='1'>
+            <ComponentRef Id='MainExecutable' />
+            <ComponentRef Id='Sqlite3' />
+            <ComponentRef Id='EnvPath' />
+        </Feature>
+
+    </Product>
+</Wix>
