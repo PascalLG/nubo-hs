@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Nubo is a self-hosted file sharing application. It currently runs on macOS and Linux. Support for Windows is expected soon.
+Nubo is a self-hosted file sharing application. It runs on macOS, Linux and Windows (64-bit versions only).
 
 It consists of two applications:
 
@@ -11,7 +11,7 @@ It consists of two applications:
 
 Basically nubo runs as any other file sharing solution. You drop files into a special folder and they auto-magically appear on all other computers of the same cloud. There are some significant differences though. (Actually I would not have written nubo if existing solutions exactly suited my needs!)
 
-* Synchronisation between your local computer and the cloud is triggered by launching a command line application. Having an "on demand" instead of a continuous synchronisation avoids unnecessary network activity when you create or save files very often. (Think of working on and compiling a software project directly from your nubo drive, for example.) It also allows scripting, be it with cron, bash, Python, AppleScript or any other tool.
+* Synchronisation between your local computer and the cloud is triggered by launching a command line application. Having an "on demand" instead of a continuous synchronisation avoids unnecessary network activity when you create or save files very often. (Think of working on and compiling a software project directly from your nubo drive, for example.) It also allows scripting, for example with cron, bash, Python, AppleScript or any other tool.
 
 * Symlinks are fully resolved. To synchronise a file or a folder, no need to copy it on the nubo drive: just create an alias or a symbolic link to it. Note that this is a hazardous feature though: you can easily have nubo deleting content directly in your personal folder via a symlink, or entering an infinite loop if symlink resolution leads to a cycle.
 
@@ -31,7 +31,7 @@ Basically nubo runs as any other file sharing solution. You drop files into a sp
 
 ### Server
 
-Nubo can be installed on any 64-bit server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection: files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
+Nubo can be installed on any server that runs PHP 7 with SQLite and Zip extensions enabled. It is strongly advised that your server is reachable through a TLS connection: files are encrypted but metadata is not. Moreover, accessing your server in HTTP instead of HTTPS means that your password is sent as plain text on the internet during this installation phase.
 
 To install your server:
 
@@ -45,7 +45,7 @@ Nubo does not have to reside at the root of your server. You can also install it
 
 ### Client
 
-The client is available as a macOS package for the macOS platform and as a Debian package for the Linux platform. To install it:
+The client is available as a macOS package for the macOS platform, as a Debian package for the Linux platform, and as an MSI package for the Windows platform. To install it:
 
 * Open your server URL in a browser.
 * Enter your cloud password to log in.
@@ -61,6 +61,8 @@ You now have to create a nubo drive. This is the special folder that will synchr
 * Enter your cloud password.
 
 Et voilà! You are ready to add content to your nubo folder and synchronise it with your cloud.
+
+If you are trying nubo for the first time on a server, you may want to run ``nubo init --test`` instead at the third step above. This will run some basic sanity checks after authentication to validate your installation. Should these tests fail, do not use nubo and report an issue.
 
 Note: on Windows 10, nubo may crash with an error message about certificate validation. Just open once your cloud URL with Edge to fix this issue.
 
@@ -100,11 +102,9 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 * Synchronise file permissions (currently all files are created with the default umask)
 * Do not resolve symlinks that point to another location into the same drive
 * Check if a new version of the application is available before each invocation (both client and server side)
-* Fix/improve the progress bar when uploading/downloading large files
 * Refactor using the more robust Path package for filename handling instead of System.Filepath
 * Refactor the Archive module so it can be unit tested
 * Create a macOS application to encapsulate the command line into a nice GUI
-* Improve the Windows version and provide an MSI installer
 * Improve the web installer (permissions problems sometimes arise when installing over an old version + there is currently no migration of the database in this case)
 * Write a better documentation :-)
 
