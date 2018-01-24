@@ -18,6 +18,7 @@ sed -E -i "" -e "s/define\\(\"VERSION\", *\"[0-9.]+\"\\);/define(\"VERSION\", \"
 # Patch the client version number
 sed -E -i "" -e "s/^ *version: *[0-9.]+ *$/version:             $1/" ../Client/nubo.cabal
 
-# Patch the macOS and the Debian packagers
+# Patch the packagers
 sed -E -i "" -e "s/^VERSION=\"[0-9.]+\" *$/VERSION=\"$1\"/" pack-macos.sh
 sed -E -i "" -e "s/^VERSION=\"[0-9.]+\" *$/VERSION=\"$1\"/" pack-linux.sh
+sed -E -i "" -e "s/ Version='[0-9.]+' / Version='$1' /" nubo.wxs

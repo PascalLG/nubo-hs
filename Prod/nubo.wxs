@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
     <Product Name='Nubo' Id='D3A62683-0065-4B1B-A906-6931337224C2' UpgradeCode='8E3BB48A-5EAF-48A0-B362-DEC0EEF8390E'
-        Language='1033' Codepage='1252' Version='2.1.0' Manufacturer='Aequans'>
+        Language='1033' Codepage='1252' Version='2.1.1' Manufacturer='Aequans'>
 
         <Package Id='*' Keywords='Installer' Description="Nubo Installer"
             Comments='Nubo by Aequans' Manufacturer='Aequans'
