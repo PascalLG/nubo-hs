@@ -33,13 +33,15 @@ module Environment (
 ) where
 
 import System.FilePath (FilePath)
-import Control.Monad.State (StateT(..), get, put, liftIO)
+import Control.Monad.State (StateT(..), get, put, liftIO, when)
 import Control.Exception (bracket)
 import Data.List (nub)
+import Data.Either (partitionEithers)
 import qualified Database.HDBC.Sqlite3 as SQL
 import qualified Network.HTTP.Client as H
 import qualified Network.HTTP.Client.TLS as H
 import PrettyPrint.Internal
+import Error.Internal
 
 -----------------------------------------------------------------------------
 -- Environment.
@@ -110,45 +112,44 @@ supportedOptions = [ ( OptionDry,    'd', "dry"     )
 
 -- | Lookup a short option (from its letter).
 --
-lookups :: Char -> [(Option, Char, String)] -> Either String Option
-lookups opt list = case lookup opt (map (\(o, c, _) -> (c, o)) list) of
-    Nothing -> Left ('-':opt:"")
+lookups :: [(Option, Char, String)] -> Char -> Either Error Option
+lookups list opt = case lookup opt (map (\(o, c, _) -> (c, o)) list) of
+    Nothing -> Left $ ErrUnsupportedOption ('-':[opt])
     Just o  -> Right o
 
 -- | Lookup a long option (from its full name).
 --
-lookupl :: String -> [(Option, Char, String)] -> Either String Option
-lookupl opt list = case lookup opt (map (\(o, _, s) -> (s, o)) list) of
-    Nothing -> Left ("--" ++ opt)
+lookupl :: [(Option, Char, String)] -> String -> Either Error Option
+lookupl list opt = case lookup opt (map (\(o, _, s) -> (s, o)) list) of
+    Nothing -> Left $ ErrUnsupportedOption ("--" ++ opt)
     Just o  -> Right o
 
 -- | Parse the command line in our monad stack, to handle the --no-ansi
--- flag at this global level.
+-- flag at a global level.
 --
-parseArgsM :: [String] -> [Option] -> EnvIO (Either String ([Option], [String]))
+parseArgsM :: [String] -> [Option] -> EnvIO (Either [Error] ([Option], [String]))
 parseArgsM cmdline optlist = do
-    let result = parseArgs cmdline (OptionNoAnsi : optlist)
-    case result of
-        Right (opts, _) | OptionNoAnsi `elem` opts -> get >>= \env -> put env { consoleMode = ModeBasic }
-        _                                          -> return ()
-    return result
+    let (errs, opts, args) = parseArgs cmdline (OptionNoAnsi : optlist)
+    when (OptionNoAnsi `elem` opts) (get >>= \env -> put env { consoleMode = ModeBasic })
+    return $ if null errs then Right (opts, args)
+                          else Left errs
 
--- | Parse a list of arguments. If an unknown or unsupported option is
--- encountered, return an appropriate error message. Otherwise, return
--- the list of recognized options and the list of remaining parameters.
+-- | Parse a list of arguments and return a list of recognised options,
+-- a list of errors (if any), and the list of remaining parameters.
 --
-parseArgs :: [String] -> [Option] -> Either String ([Option], [String])
-parseArgs cmdline optlist = parse cmdline >>= \(opts, params) -> Right (nub opts, params)
+parseArgs :: [String] -> [Option] -> ([Error], [Option], [String])
+parseArgs cmdline optlist = let (errs, opts, params) = parse cmdline
+                             in  (nub errs, nub opts, params)
     where
-        parse :: [String] -> Either String ([Option], [String])
-        parse []                   = Right ([], [])
-        parse (('-':'-':opt):args) = lookupl opt supported >>= \r -> parse args >>= \(xs, ys) -> Right (r:xs, ys)
-        parse (('-':opt):args)     = parse' opt >>= \rs -> parse args >>= \(xs, ys) -> Right (rs ++ xs, ys)
-        parse args                 = Right ([], args)
-
-        parse' :: String -> Either String [Option]
-        parse' []     = Right []
-        parse' (c:cs) = lookups c supported >>= \r -> parse' cs >>= \xs -> Right (r:xs)
+        parse :: [String] -> ([Error], [Option], [String])
+        parse (('-':'-':opt):args) = let (errs, opts, params) = parse args
+                                     in case lookupl supported opt of
+                                            Left err'  -> (err':errs, opts, params)
+                                            Right opt' -> (errs, opt':opts, params)
+        parse (('-':opt):args)     = let (errs, opts, params) = parse args
+                                         (errs', opts') = partitionEithers $ map (lookups supported) opt
+                                     in  (errs' ++ errs, opts' ++ opts, params)
+        parse args                 = ([], [], args)
 
         supported :: [(Option, Char, String)]
         supported = filter (\(opt, _, _) -> opt `elem` optlist) supportedOptions

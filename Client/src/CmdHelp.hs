@@ -40,7 +40,7 @@ cmdHelp :: EnvIO () -> [String] -> EnvIO ExitStatus
 cmdHelp help args = do
     result <- parseArgsM args []
     case result of
-        Left err         -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Left errs        -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
         Right (_, [])    -> help >> return StatusOK
 

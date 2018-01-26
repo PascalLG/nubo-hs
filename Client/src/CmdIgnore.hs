@@ -44,7 +44,7 @@ cmdIgnore :: [String] -> EnvIO ExitStatus
 cmdIgnore args = do
     result <- parseArgsM args [OptionDelete]
     case result of
-        Left err -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Left errs -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, xs)
             | elem OptionDelete opts -> openDBAndRun $ deletePatterns xs
             | null xs                -> openDBAndRun $ printPatterns

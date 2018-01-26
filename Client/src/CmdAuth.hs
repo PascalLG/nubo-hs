@@ -46,7 +46,7 @@ cmdAuth :: [String] -> EnvIO ExitStatus
 cmdAuth args = do
     result <- parseArgsM args []
     case result of
-        Left err            -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Left errs           -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (_, [])       -> exec Nothing
         Right (_, [pwd])    -> exec (Just pwd)
         Right (_, (_:a:_))  -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand

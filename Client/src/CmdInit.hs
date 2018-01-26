@@ -51,7 +51,7 @@ cmdInit :: [String] -> EnvIO ExitStatus
 cmdInit args = do
     result <- parseArgsM args [OptionForce, OptionTest]
     case result of
-        Left err                 -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Left errs                -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, [])         -> exec opts Nothing Nothing
         Right (opts, [url])      -> exec opts (Just url) Nothing
         Right (opts, [url, pwd]) -> exec opts (Just url) (Just pwd)

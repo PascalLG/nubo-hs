@@ -54,7 +54,7 @@ cmdSync :: [String] -> EnvIO ExitStatus
 cmdSync args = do
     result <- parseArgsM args [OptionDry, OptionTheirs, OptionOurs]
     case result of
-        Left err            -> putErr (ErrUnsupportedOption err) >> return StatusInvalidCommand
+        Left errs           -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, files) -> case priority opts of
                                    Left err -> putErr err >> return StatusInvalidCommand
                                    Right p  -> openDBAndRun $ doSync (OptionDry `elem` opts) p files
