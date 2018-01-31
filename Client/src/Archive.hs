@@ -21,15 +21,13 @@
 -- THE SOFTWARE.
 -----------------------------------------------------------------------------
 
+{-# LANGUAGE BangPatterns #-}
+
 module Archive (
     archive,
     unarchive,
 ) where
 
-import Crypto.Cipher.AES (AES256)
-import Crypto.Cipher.Types (BlockCipher(..), Cipher(..), nullIV)
-import Crypto.KDF.Scrypt (generate, Parameters(..))
-import Crypto.Error (CryptoFailable(..))
 import Control.Exception (try, catches, Handler(..))
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
@@ -39,6 +37,7 @@ import Data.Monoid ((<>))
 import Misc
 import Error
 import FileHelper
+import Archive.Internal
 
 -----------------------------------------------------------------------------
 -- Archive and unarchive.
@@ -48,66 +47,50 @@ import FileHelper
 --
 archive :: FilePath -> B.ByteString -> IO (Either Error B.ByteString)
 archive path password = do
-    content <- try (L.toStrict
-                <$> Z.compressWith Z.defaultCompressParams { Z.compressLevel = Z.bestCompression }
-                <$> L.readFile path) :: IO (Either IOError B.ByteString)
-    case content of
+    result <- try process :: IO (Either IOError B.ByteString)
+    case result of
         Left _  -> return $ Left (ErrIOException path "cannot read")
-        Right c -> do
+        Right c -> return $ Right c
+
+    where
+        process :: IO B.ByteString
+        process = do
             salt <- randomBytes 32
-            return $ Right (magicNumberV1 <> salt <> aes256 password salt c)
+            plain <- L.readFile path
+            let !content = aes256encode password salt
+                         $ Z.compressWith Z.defaultCompressParams { Z.compressLevel = Z.bestCompression }
+                         $ plain
+            return $ content `seq` magicNumberV1 <> salt <> content
 
 -- | Unarchive a compressed and encrypted byte string to a file. Return
 -- either an error or the number of bytes written.
 --
-unarchive :: B.ByteString -> FilePath -> B.ByteString -> IO (Either Error Int)
-unarchive ciphertext path password = catches unarchive' [Handler (handleDecompressError path), Handler (handleIOError path)]
+unarchive :: B.ByteString -> FilePath -> B.ByteString -> IO (Either Error ())
+unarchive ciphertext path password = catches process [Handler (handleDecompressError path), Handler (handleIOError path)]
     where
-        unarchive' :: IO (Either Error Int)
-        unarchive' = case decode (B.splitAt 4 ciphertext) of
+        process :: IO (Either Error ())
+        process = case decode (B.splitAt 4 ciphertext) of
             Left e  -> return $ Left e
             Right c -> do
                 atomicWrite path c
-                return $ Right (fromIntegral (L.length c))
+                return $ Right ()
 
         decode :: (B.ByteString, B.ByteString) -> Either Error L.ByteString
-        decode (hdr, text) = if      hdr == magicNumberV1 then Right $ unarchiveV1 text password
-                             else if hdr == magicNumberV2 then Right $ undefined
-                             else                              Left $ ErrUnknownArchiveFormat path
+        decode (hdr, text)
+            | hdr == magicNumberV1 = Right $ unarchiveV1 text password
+            | otherwise            = Left $ ErrUnknownArchiveFormat path
 
-        handleDecompressError :: FilePath -> ZI.DecompressError -> IO (Either Error Int)
+        handleDecompressError :: FilePath -> ZI.DecompressError -> IO (Either Error ())
         handleDecompressError filepath _ = return $ Left (ErrCorruptedArchive filepath)
 
-        handleIOError :: FilePath -> IOError -> IO (Either Error Int)
+        handleIOError :: FilePath -> IOError -> IO (Either Error ())
         handleIOError filepath _ = return $ Left (ErrIOException filepath "cannot write")
 
 -- | Process a v1 archive.
 --
 unarchiveV1 :: B.ByteString -> B.ByteString -> L.ByteString
-unarchiveV1 cipher password =
-    let
-        (salt, text) = B.splitAt 32 cipher
-        u = aes256 password salt text
-    in 
-        Z.decompress (L.fromStrict u)
-
------------------------------------------------------------------------------
--- Cipher.
-
--- | Cipher or decipher a chunk of data using a given password and salt. Data
--- are ciphered using AES256 in CTR mode. The actual key is derived from
--- the password and the salt using SCrypt.
---
-aes256 :: B.ByteString -> B.ByteString -> B.ByteString -> B.ByteString
-aes256 password salt plaintext = ctrCombine ctx nullIV plaintext
-    where
-        ctx :: AES256
-        ctx = case cipherInit key of
-            CryptoPassed a -> a
-            CryptoFailed e -> error (show e) -- should not happen IRL
-
-        key :: B.ByteString
-        key = generate Parameters {n = 16384, r = 8, p = 1, outputLength = 32} password salt
+unarchiveV1 cipher password = let (salt, text) = B.splitAt 32 cipher
+                              in  Z.decompress $ aes256decode password salt text
 
 -----------------------------------------------------------------------------
 -- Configuration.
@@ -119,7 +102,7 @@ magicNumberV1 = B.pack [0x70, 0x6C, 0x79, 0x30]
 
 -- | Magic number for archives v2. (Not used yet.)
 --
-magicNumberV2 :: B.ByteString
-magicNumberV2 = B.pack [0x70, 0x6C, 0x79, 0x31]
+-- magicNumberV2 :: B.ByteString
+-- magicNumberV2 = B.pack [0x70, 0x6C, 0x79, 0x31]
 
 -----------------------------------------------------------------------------
