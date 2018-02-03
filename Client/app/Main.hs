@@ -31,6 +31,7 @@ import CmdAuth
 import CmdHelp
 import CmdIgnore
 import CmdInit
+import CmdList
 import CmdRemote
 import CmdSync
 
@@ -68,11 +69,13 @@ dispatch args = case args of
     ("remote":xs)        -> cmdRemote xs
     ("sync":xs)          -> cmdSync xs
     ("auth":xs)          -> cmdAuth xs
+    ("list":xs)          -> cmdList xs
     ("help":"init":xs)   -> cmdHelp helpInit xs
     ("help":"ignore":xs) -> cmdHelp helpIgnore xs
     ("help":"remote":xs) -> cmdHelp helpRemote xs
     ("help":"sync":xs)   -> cmdHelp helpSync xs
     ("help":"auth":xs)   -> cmdHelp helpAuth xs
+    ("help":"list":xs)   -> cmdHelp helpList xs
     ("help":xs)          -> cmdHelp printUsage xs -- give a chance to print usage with --ansi option
     _                    -> printUsage >> return StatusInvalidCommand
 

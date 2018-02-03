@@ -24,6 +24,7 @@
 module Database (
       nuboDatabase
     , findNuboDB
+    , isValidNuboDB
     , createDBAndRun
     , openDBAndRun
     , saveConfig
@@ -79,9 +80,20 @@ findNuboDB = getWorkingDirectory >>= find . strip
             | otherwise                                         = path
 
         isReady :: FilePath -> IO Bool
-        isReady path = maybe False id <$> bracket (connectSqlite3 path) 
-                                                  (disconnect) 
-                                                  (getConfigIO CfgReady)
+        isReady path = not . null <$> isValidNuboDB path
+
+-- | Check whether a Nubo database is fully configured or not. Return the URL of
+-- the remote server if it is, and an empty string otherwise.
+--
+isValidNuboDB :: FilePath -> IO String
+isValidNuboDB path = bracket (connectSqlite3 path)
+                             (disconnect)
+                             (\db -> do
+                                r <- getConfigIO CfgReady db
+                                u <- getConfigIO CfgRemoteURL db
+                                case (r, u) of
+                                    (Just True, Just url) -> return url
+                                    _                     -> return "")
 
 -- | Create or open the Nubo database and prepare it by creating the
 -- required tables. If the database already exists, all data are

@@ -40,9 +40,9 @@ import Foreign.Ptr (Ptr)
 import Foreign.Marshal (alloca)
 import Foreign.Storable (Storable(..))
 import Control.Monad (when)
+import Data.Bits ((.|.))
 #if !defined(DEBUG)
 import System.Win32.File (getFileAttributes, setFileAttributes, fILE_ATTRIBUTE_HIDDEN)
-import Data.Bits ((.|.))
 #endif
 #else
 import System.Directory (doesDirectoryExist)

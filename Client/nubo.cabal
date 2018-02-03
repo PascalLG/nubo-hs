@@ -34,6 +34,7 @@ library
                      , CmdHelp
                      , CmdIgnore
                      , CmdInit
+                     , CmdList
                      , CmdRemote
                      , CmdSync
                      , CmdSync.Actions

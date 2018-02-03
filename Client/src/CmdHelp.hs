@@ -69,6 +69,7 @@ printUsage = do
     putLine $ "    {y:ignore}}  Add or delete patterns to the list of ignored files"
     putLine $ "    {y:sync}}    Synchronise the local computer with the remote server"
     putLine $ "    {y:auth}}    Re-authenticate the user"
+    putLine $ "    {y:list}}    List all synced folders for the current user"
     putLine $ "    {y:remote}}  Print the URL of the remote server"
     putLine $ "    {y:help}}    Print help about a command"
     putLine $ ""
