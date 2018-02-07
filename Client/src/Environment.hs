@@ -96,6 +96,7 @@ data Option =
     | OptionTheirs
     | OptionOurs
     | OptionNoAnsi
+    | OptionNoTLS
     | OptionTest
     deriving (Show, Ord, Eq)
 
@@ -108,6 +109,7 @@ supportedOptions = [ ( OptionDry,    'd', "dry"     )
                    , ( OptionTheirs, 't', "theirs"  )
                    , ( OptionOurs,   'o', "ours"    )
                    , ( OptionNoAnsi, 'a', "no-ansi" )
+                   , ( OptionNoTLS,  's', "no-tls"  )
                    , ( OptionTest,   'u', "test"    )]
 
 -- | Lookup a short option (from its letter).

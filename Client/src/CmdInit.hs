@@ -34,6 +34,7 @@ import Network.HostName (getHostName)
 import Data.ByteArray (convert)
 import Control.Monad.Trans (liftIO)
 import Data.Text.Encoding (encodeUtf8)
+import Data.Char (toLower)
 import PrettyPrint
 import Misc
 import Environment
@@ -49,7 +50,7 @@ import WebService
 --
 cmdInit :: [String] -> EnvIO ExitStatus
 cmdInit args = do
-    result <- parseArgsM args [OptionForce, OptionTest]
+    result <- parseArgsM args [OptionForce, OptionTest, OptionNoTLS]
     case result of
         Left errs                -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, [])         -> exec opts Nothing Nothing
@@ -61,16 +62,19 @@ cmdInit args = do
         exec :: [Option] -> Maybe String -> Maybe String -> EnvIO ExitStatus
         exec options url pass = liftIO findNuboDB >>= \previous ->
             case previous of
-                Just p | not (elem OptionForce options) -> putErr (ErrAlreadySyncFolder p) >> return StatusDatabaseAlreadyExists
-                _                                       -> createDBAndRun $ doInit url pass (elem OptionTest options)
+                Just p | OptionForce `notElem` options -> putErr (ErrAlreadySyncFolder p) >> 
+                                                          return StatusDatabaseAlreadyExists
+                _                                      -> createDBAndRun $ doInit url pass
+                                                                                  (OptionTest `elem` options)
+                                                                                  (OptionNoTLS `elem` options)
 
 -- | Execute the 'init' command. Create the local database (if
 -- necessary), reset all parameters to their default values, ask
 -- the user a cloud URL and a password, and try to authenticate on
 -- the specified server.
 --
-doInit :: Maybe String -> Maybe String -> Bool -> EnvIO ExitStatus
-doInit opturl optpass test = do
+doInit :: Maybe String -> Maybe String -> Bool -> Bool -> EnvIO ExitStatus
+doInit opturl optpass test notls = do
     setupTlsManager
     hostname <- liftIO $ getHostName
     computer <- getConfig CfgComputerUUID
@@ -85,28 +89,35 @@ doInit opturl optpass test = do
         Just u  -> return u
         Nothing -> liftIO $ promptUserInput "Cloud URL?" True
     saveConfig CfgRemoteURL url
+    
+    secure <- let https = map toLower (take 6 url) == "https:"
+                  ask = promptUserInput "This server is not secured by TLS/SSL. Proceed anyway? (yes/no) " True
+              in if notls || https then return True
+                                   else (== "yes") <$> liftIO ask
 
-    pass <- case optpass of
-        Just p  -> return p
-        Nothing -> liftIO $ promptUserInput "Password?" False
+    if not secure then return StatusAborted
+                  else do
+        pass <- case optpass of
+            Just p  -> return p
+            Nothing -> liftIO $ promptUserInput "Password?" False
 
-    let json = MsgObject [ ("computer", msgString (show token))
-                         , ("hostname", msgString hostname)
-                         , ("password", msgString pass)
-                         , ("salt", MsgBool True)]
-    result <- callWebService "init" json ProgressNone
+        let json = MsgObject [ ("computer", msgString (show token))
+                             , ("hostname", msgString hostname)
+                             , ("password", msgString pass)
+                             , ("salt", MsgBool True)]
+        result <- callWebService "init" json ProgressNone
 
-    case result of
-        Left err -> putErr err >> return StatusConnectionFailed
-        Right resp -> case resp !? "salt" of
-            Just (MsgBinary salt) | B.length salt >= 32 -> do
-                let utf8pass = encodeUtf8 (T.pack pass)
-                let hmac = M.hmac utf8pass salt :: M.HMAC H.SHA256
-                saveConfig CfgMasterKey (convert (M.hmacGetDigest hmac) :: B.ByteString)
-                saveConfig CfgReady True
-                if test then doSanityChecks
-                        else return StatusOK
-            _ -> putErr ErrInvalidMasterKey >> return StatusConnectionFailed
+        case result of
+            Left err -> putErr err >> return StatusConnectionFailed
+            Right resp -> case resp !? "salt" of
+                Just (MsgBinary salt) | B.length salt >= 32 -> do
+                    let utf8pass = encodeUtf8 (T.pack pass)
+                    let hmac = M.hmac utf8pass salt :: M.HMAC H.SHA256
+                    saveConfig CfgMasterKey (convert (M.hmacGetDigest hmac) :: B.ByteString)
+                    saveConfig CfgReady True
+                    if test then doSanityChecks
+                            else return StatusOK
+                _ -> putErr ErrInvalidMasterKey >> return StatusConnectionFailed
 
 -- | Perform basic sanity checks. The goal is to ensure the communication
 -- layer works as expected by testing: calling the server, encoding and
@@ -253,7 +264,8 @@ helpInit =  do
     putLine $ "    • Only access your server over a secured connection, which typically means"
     putLine $ "      providing here a URL that starts with {m:https://}}. Note that this requires"
     putLine $ "      that your server supports TLS and is properly installed with valid"
-    putLine $ "      certificates."
+    putLine $ "      certificates. By default, {y:nubo}} asks for confirmation before proceeding if"
+    putLine $ "      it detects your server is not secured."
     putLine $ ""
     putLine $ "    • Do not provide your password on the command line, since it appears as"
     putLine $ "      clear text on your terminal and can be recalled later by cycling over the"
@@ -283,6 +295,8 @@ helpInit =  do
     putLine $ "    {y:-u}}, {y:--test}}      Run sanity checks after the authentication succeeds, to"
     putLine $ "                    ensure the server works as expected and interfaces properly"
     putLine $ "                    with the client."
+    putLine $ "    {y:-s}}, {y:--no-tls}}    Do not ask for confirmation if the connection to the"
+    putLine $ "                    server is not secured."
     putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 

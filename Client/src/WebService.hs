@@ -30,20 +30,19 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Char8 as C
 import qualified Data.Text as T
-import qualified Network.HTTP.Client as H
-import Data.ByteString.Builder
+import Data.ByteString.Builder (Builder, toLazyByteString, byteString)
 import Control.Exception (bracket_, try)
-import Control.Monad.State
-import Network.HTTP.Client
+import Control.Monad.State (StateT(..), when, lift, liftIO, get, put)
 import Network.HTTP.Types.Header (hContentLength)
-import Text.Printf
-import Data.IORef
+import Network.HTTP.Client
+import Text.Printf (printf)
+import Data.IORef (newIORef, readIORef, writeIORef)
+import Misc
+import Error
 import Environment
 import PrettyPrint
-import Error
 import MsgPack
 import Database
-import Misc
 
 -----------------------------------------------------------------------------
 -- Web services.
@@ -99,7 +98,7 @@ callWebService cmd params bar = do
 -- call displaying progress bars if necessary, then return either
 -- an error or the server response.
 --
-callAPI :: H.Manager -> String -> MsgValue -> Observer -> Observer -> IO (Either Error L.ByteString)
+callAPI :: Manager -> String -> MsgValue -> Observer -> Observer -> IO (Either Error L.ByteString)
 callAPI manager url params obs_send obs_recv = do
     result <- try $ do
         initialreq <- parseRequest url

@@ -46,9 +46,9 @@ cmdIgnore args = do
     case result of
         Left errs -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, xs)
-            | elem OptionDelete opts -> openDBAndRun $ deletePatterns xs
-            | null xs                -> openDBAndRun $ printPatterns
-            | otherwise              -> openDBAndRun $ addPatterns xs
+            | OptionDelete `elem` opts -> openDBAndRun $ deletePatterns xs
+            | null xs                  -> openDBAndRun $ printPatterns
+            | otherwise                -> openDBAndRun $ addPatterns xs
 
 -- | Print the list of file patterns to ignore. The list is sorted
 -- by pattern and each entry is assigned a rank that can be used

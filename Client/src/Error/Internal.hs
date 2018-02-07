@@ -67,6 +67,7 @@ instance Show Error where
 --
 data ExitStatus =
       StatusOK                  -- Should be first so fromEnum StatusOK == 0
+    | StatusAborted
     | StatusInvalidCommand
     | StatusDatabaseNotFound
     | StatusDatabaseAlreadyExists
