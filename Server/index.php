@@ -135,7 +135,7 @@ EOT;
         try {
             $db = new NuboDatabase();
             echo "<h2>Computers</h2>\n";
-            $result = $db->select('SELECT computer_id, hostname, atime, validator FROM tbl_computer ORDER BY hostname ASC');
+            $result = $db->select('SELECT computer_id, hostname, atime, validator FROM tbl_computer ORDER BY hostname ASC, atime DESC');
             if (count($result)) {
                 echo "<table>";
                 echo "<tr><th>Name</th><th>Last synchronised</th><th>Status</th><th>Actions</th></tr>\n";
