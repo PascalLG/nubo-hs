@@ -33,6 +33,7 @@ import System.FilePath ((</>))
 import System.Info (os)
 import System.IO.Error (catchIOError)
 import Config
+import Misc
 import PrettyPrint
 import Environment
 import Error
@@ -44,20 +45,28 @@ import Database
 --
 cmdList :: [String] -> EnvIO ExitStatus
 cmdList args = do
-    result <- parseArgsM args []
+    result <- parseArgsM args [OptionCSV]
     case result of
         Left errs        -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
-        Right (_, [])    -> doList
+        Right (opts, []) -> doList (OptionCSV `elem` opts)
 
 -- | Execute the 'list' command.
 --
-doList :: EnvIO ExitStatus
-doList = liftIO $ do
+doList :: Bool -> EnvIO ExitStatus
+doList csv = liftIO $ do
     list <- getHomeDirectory >>= findNuboDrives 5 ""
-    let maxlen = maximum $ map (length . fst) list
-    forM_ list $ \(path, url) -> putStrLn (path ++ replicate (maxlen - length path) ' ' ++ " -> " ++ url)
+    forM_ list $ if csv then printcsv 
+                        else let maxlen = maximum $ map (length . fst) list
+                             in printstd maxlen
     return StatusOK
+
+    where
+        printstd :: Int -> (String, String) -> IO ()
+        printstd maxlen (path, url) = putStrLn (path ++ replicate (maxlen - length path) ' ' ++ " -> " ++ url)
+
+        printcsv :: (String, String) -> IO ()
+        printcsv (path, url) = putStrF $ toCSV [path, url]
 
 -- | Recursively browse directories to find nubo drives. To save
 -- time, only the first sublevels of the user's home folder are
@@ -76,7 +85,7 @@ findNuboDrives level curr home = do
            not islink &&
            level > 0 &&
            any (/= '.') name &&
-           path `notElem` excluded then findNuboDrives (level - 1) path home 
+           path `notElem` excluded then findNuboDrives (level - 1) path home
                                    else return [])
 
     u <- isNuboDrive (abspath </> nuboDatabase)
@@ -103,7 +112,7 @@ findNuboDrives level curr home = do
 helpList :: EnvIO ()
 helpList = do
     putLine $ "{*:USAGE}}"
-    putLine $ "    {y:nubo list}}"
+    putLine $ "    {y:nubo list}} [{y:options}}]"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Recursively search the user’s home directory and its descendent folders"
@@ -118,6 +127,7 @@ helpList = do
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
     putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
+    putLine $ "    {y:-c}}, {y:--csv}}       Format the command output as CSV."
     putLine $ ""
 
 -----------------------------------------------------------------------------

@@ -27,12 +27,14 @@ module Misc (
     , randomBytes
     , (<&&>)
     , dropWhileEnd
+    , toCSV
 ) where
 
 import System.IO (hFlush, hGetEcho, hSetEcho, stdout, stdin)
 import Crypto.Random (getSystemDRG, randomBytesGenerate)
 import Control.Monad (when)
 import Control.Exception (bracket_)
+import Data.List (intercalate)
 import qualified Data.ByteString as B
 
 -----------------------------------------------------------------------------
@@ -75,5 +77,12 @@ infixr 3 <&&>
 --
 dropWhileEnd :: (a -> Bool) -> [a] -> [a]
 dropWhileEnd p = foldr (\x xs -> if p x && null xs then [] else x : xs) []
+
+-- | Format a value for a CSV file. The resulting string is enclosed
+-- in double quotes.
+--
+toCSV :: [String] -> String
+toCSV vs = intercalate ", " (map row vs) ++ "\n"
+    where row v = "\"" ++ concatMap (\c -> if c == '"' then [c, c] else [c]) v ++ "\""
 
 -----------------------------------------------------------------------------

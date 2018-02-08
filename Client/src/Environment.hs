@@ -97,6 +97,7 @@ data Option =
     | OptionOurs
     | OptionNoAnsi
     | OptionNoTLS
+    | OptionCSV
     | OptionTest
     deriving (Show, Ord, Eq)
 
@@ -110,6 +111,7 @@ supportedOptions = [ ( OptionDry,    'd', "dry"     )
                    , ( OptionOurs,   'o', "ours"    )
                    , ( OptionNoAnsi, 'a', "no-ansi" )
                    , ( OptionNoTLS,  's', "no-tls"  )
+                   , ( OptionCSV,    'c', "csv"     )
                    , ( OptionTest,   'u', "test"    )]
 
 -- | Lookup a short option (from its letter).
