@@ -48,23 +48,23 @@ import CmdSync.Logic
 -- | Given a FileAction value, return descriptive strings, a color, and
 -- a function that performs that action.
 --
-getActionInfo :: UFilePath -> FilePath -> Action -> (String, Maybe String, AnsiColor, EnvIO (Either Error ()))
-getActionInfo upath path (ActionSendFile hash)    = ("send", Nothing, AnsiWhite, doSendFile hash upath path)
-getActionInfo upath path (ActionSendDir)          = ("send", Nothing, AnsiWhite, doSendDir upath path)
-getActionInfo upath path (ActionGetFile hash)     = ("get", Nothing, AnsiWhite, doGetFile hash upath path)
-getActionInfo upath path (ActionGetDir)           = ("get", Nothing, AnsiWhite, doGetDir upath path)
-getActionInfo upath path (ActionDeleteLocalFile)  = ("delete local", Nothing, AnsiWhite, doDeleteLocalFile upath path)
-getActionInfo upath path (ActionDeleteLocalDir)   = ("delete local", Nothing, AnsiWhite, doDeleteLocalDir upath path)
-getActionInfo upath _    (ActionDeleteRemote)     = ("delete remote", Nothing, AnsiWhite, doDeleteRemote upath)
-getActionInfo upath _    (ActionUpdateCache hash) = ("update cache", Nothing, AnsiWhite, updateFileInfo upath hash)
-getActionInfo upath _    (ActionDeleteFromCache)  = ("update cache", Nothing, AnsiWhite, deleteFileInfo upath)
-getActionInfo _     _    (ActionConflict ctype)   = ("conflict", Just (show ctype), AnsiRed, return $ Right ())
-getActionInfo upath _    (ActionError)            = ("error", Just "internal inconsistency", AnsiRed, deleteFileInfo upath)
+getActionInfo :: UFilePath -> FilePath -> Action -> Bool -> (String, Maybe String, AnsiColor, EnvIO (Either Error ()))
+getActionInfo upath path (ActionSendFile hash)    csv = ("send", Nothing, AnsiWhite, doSendFile hash upath path csv)
+getActionInfo upath path (ActionSendDir)          _   = ("send", Nothing, AnsiWhite, doSendDir upath path)
+getActionInfo upath path (ActionGetFile hash)     csv = ("get", Nothing, AnsiWhite, doGetFile hash upath path csv)
+getActionInfo upath path (ActionGetDir)           _   = ("get", Nothing, AnsiWhite, doGetDir upath path)
+getActionInfo upath path (ActionDeleteLocalFile)  _   = ("delete local", Nothing, AnsiWhite, doDeleteLocalFile upath path)
+getActionInfo upath path (ActionDeleteLocalDir)   _   = ("delete local", Nothing, AnsiWhite, doDeleteLocalDir upath path)
+getActionInfo upath _    (ActionDeleteRemote)     _   = ("delete remote", Nothing, AnsiWhite, doDeleteRemote upath)
+getActionInfo upath _    (ActionUpdateCache hash) _   = ("update cache", Nothing, AnsiWhite, updateFileInfo upath hash)
+getActionInfo upath _    (ActionDeleteFromCache)  _   = ("update cache", Nothing, AnsiWhite, deleteFileInfo upath)
+getActionInfo _     _    (ActionConflict ctype)   _   = ("conflict", Just (show ctype), AnsiRed, return $ Right ())
+getActionInfo upath _    (ActionError)            _   = ("error", Just "internal inconsistency", AnsiRed, deleteFileInfo upath)
 
 -- | Upload a file to the cloud.
 --
-doSendFile :: B.ByteString -> UFilePath -> FilePath -> EnvIO (Either Error ())
-doSendFile hash upath path = getMasterKey >>=? liftIO . archive path >>=? send >>? updateFileInfo upath hash
+doSendFile :: B.ByteString -> UFilePath -> FilePath -> Bool -> EnvIO (Either Error ())
+doSendFile hash upath path csv = getMasterKey >>=? liftIO . archive path >>=? send >>? updateFileInfo upath hash
     where
         send :: B.ByteString -> EnvIO (Either Error MsgValue)
         send content = do
@@ -73,7 +73,8 @@ doSendFile hash upath path = getMasterKey >>=? liftIO . archive path >>=? send >
                                     , ("hash", MsgString (decodeUtf8 hash))
                                     , ("mtime", MsgInteger mtime)
                                     , ("content", MsgBinary content) ]
-            callWebService "put" payload ProgressSend
+            let bar = if csv then ProgressNone else ProgressSend
+            callWebService "put" payload bar
 
 -- | Upload a directory to the cloud. The logic is basically the
 -- same as uploading a file, except that both the hash and content
@@ -92,13 +93,14 @@ doSendDir upath path = send >>? updateFileInfo upath B.empty
 
 -- | Download a file from the cloud.
 --
-doGetFile :: B.ByteString -> UFilePath -> FilePath -> EnvIO (Either Error ())
-doGetFile hash upath path = receive >>=? return . decode >>=? save
+doGetFile :: B.ByteString -> UFilePath -> FilePath -> Bool -> EnvIO (Either Error ())
+doGetFile hash upath path csv = receive >>=? return . decode >>=? save
     where
         receive :: EnvIO (Either Error MsgValue)
         receive = do
             let payload = MsgObject [("name", MsgString upath)]
-            callWebService "get" payload ProgressReceive
+            let bar = if csv then ProgressNone else ProgressReceive
+            callWebService "get" payload bar
 
         decode :: MsgValue -> Either Error (Int, B.ByteString)
         decode msg = case (msg !? "mtime", msg !? "content", msg !? "hash") of
@@ -123,7 +125,7 @@ doGetDir upath path = receive >>=? return . decode >>=? save
         receive :: EnvIO (Either Error MsgValue)
         receive = do
             let payload = MsgObject [("name", MsgString upath)]
-            callWebService "get" payload ProgressReceive
+            callWebService "get" payload ProgressNone
 
         decode :: MsgValue -> Either Error Int
         decode msg = case (msg !? "mtime") of

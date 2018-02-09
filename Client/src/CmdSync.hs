@@ -34,6 +34,7 @@ import Data.Text.Encoding (encodeUtf8)
 import Data.List (sortBy, partition, isPrefixOf)
 import System.FilePath (makeRelative, combine)
 import Data.Either (rights)
+import Misc
 import Environment
 import PrettyPrint
 import Config
@@ -52,12 +53,15 @@ import CmdSync.Actions
 --
 cmdSync :: [String] -> EnvIO ExitStatus
 cmdSync args = do
-    result <- parseArgsM args [OptionDry, OptionTheirs, OptionOurs]
+    result <- parseArgsM args [OptionDry, OptionTheirs, OptionOurs, OptionCSV]
     case result of
         Left errs           -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, files) -> case priority opts of
                                    Left err -> putErr err >> return StatusInvalidCommand
-                                   Right p  -> openDBAndRun $ doSync (OptionDry `elem` opts) p files
+                                   Right p  -> openDBAndRun $ doSync (OptionCSV `elem` opts)
+                                                                     (OptionDry `elem` opts)
+                                                                     p
+                                                                     files
     where
         priority :: [Option] -> Either Error SyncPriority
         priority flags
@@ -71,8 +75,8 @@ cmdSync args = do
 
 -- | Execute the 'sync' command.
 --
-doSync :: Bool -> SyncPriority -> [String] -> EnvIO ExitStatus
-doSync dry priority params = do
+doSync :: Bool -> Bool -> SyncPriority -> [String] -> EnvIO ExitStatus
+doSync csv dry priority params = do
     setupTlsManager
     result <- callWebService "directory" MsgNull ProgressNone
     case result >>= parseFileList of
@@ -82,9 +86,10 @@ doSync dry priority params = do
         Right remote' -> do
             env <- get
             let Just root = rootPath env
+            let printfnc = if csv then printActionCsv else printActionStd
             (errlist, local'', filemap) <- liftIO $ buildFileList root
             forM_ errlist (\(upath, err) ->
-                printAction AnsiRed "error" (Just (show err)) (makeRelative root (rebuildFilePath filemap upath)))
+                printfnc AnsiRed "error" (Just (show err)) (makeRelative root (rebuildFilePath filemap upath)))
 
             cwd <- liftIO $ getWorkingDirectory
             if not (root `isPrefixOf` cwd) then error "internal consistency" else return ()
@@ -102,8 +107,8 @@ doSync dry priority params = do
 
             oks <- forM (before ++ middle ++ reverse after) (\(upath, action) -> do
                 let path = rebuildFilePath filemap upath
-                let (desc, extra, color, justdoit) = getActionInfo upath path action
-                printAction color desc extra (makeRelative root path)
+                let (desc, extra, color, justdoit) = getActionInfo upath path action csv
+                printfnc color desc extra (makeRelative root path)
                 if dry then return True else do
                     ret <- justdoit
                     case ret of
@@ -130,8 +135,8 @@ doSync dry priority params = do
         compareFiles :: (UFilePath, a) -> (UFilePath, a) -> Ordering
         compareFiles (f1, _) (f2, _) = compare f1 f2
 
-        printAction :: AnsiColor -> String -> Maybe String -> FilePath -> EnvIO ()
-        printAction color desc extra path = do
+        printActionStd :: AnsiColor -> String -> Maybe String -> FilePath -> EnvIO ()
+        printActionStd color desc extra path = do
             cm <- consoleMode <$> get
             liftIO $ putStrLn $ foreColor cm color text
             where
@@ -140,6 +145,11 @@ doSync dry priority params = do
                     Nothing -> ""
                 filling = replicate (15 - length desc) ' '
                 text = "    " ++ desc ++ ":" ++ filling ++ path ++ eol
+
+        printActionCsv :: AnsiColor -> String -> Maybe String -> FilePath -> EnvIO ()
+        printActionCsv _ desc extra path = liftIO $ putStrF line
+            where
+                line = toCSV [desc, maybe "" id extra, path]
 
 -----------------------------------------------------------------------------
 
@@ -187,6 +197,7 @@ helpSync = do
     putLine $ "    {y:-d}}, {y:--dry}}       Simulate a synchronisation."
     putLine $ "    {y:-t}}, {y:--theirs}}    Resolve conflicts by keeping remote version of files."
     putLine $ "    {y:-o}}, {y:--ours}}      Resolve conflicts by keeping local version of files."
+    putLine $ "    {y:-c}}, {y:--csv}}       Format the command output as CSV."
     putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
     putLine $ ""
 

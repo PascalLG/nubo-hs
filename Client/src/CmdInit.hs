@@ -95,8 +95,7 @@ doInit opturl optpass test notls = do
               in if notls || https then return True
                                    else (== "yes") <$> liftIO ask
 
-    if not secure then return StatusAborted
-                  else do
+    if not secure then return StatusAborted else do
         pass <- case optpass of
             Just p  -> return p
             Nothing -> liftIO $ promptUserInput "Password?" False

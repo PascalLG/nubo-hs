@@ -56,17 +56,17 @@ cmdList args = do
 doList :: Bool -> EnvIO ExitStatus
 doList csv = liftIO $ do
     list <- getHomeDirectory >>= findNuboDrives 5 ""
-    forM_ list $ if csv then printcsv 
+    forM_ list $ if csv then printCsv 
                         else let maxlen = maximum $ map (length . fst) list
-                             in printstd maxlen
+                             in printStd maxlen
     return StatusOK
 
     where
-        printstd :: Int -> (String, String) -> IO ()
-        printstd maxlen (path, url) = putStrLn (path ++ replicate (maxlen - length path) ' ' ++ " -> " ++ url)
+        printStd :: Int -> (String, String) -> IO ()
+        printStd maxlen (path, url) = putStrLn (path ++ replicate (maxlen - length path) ' ' ++ " -> " ++ url)
 
-        printcsv :: (String, String) -> IO ()
-        printcsv (path, url) = putStrF $ toCSV [path, url]
+        printCsv :: (String, String) -> IO ()
+        printCsv (path, url) = putStrF $ toCSV [path, url]
 
 -- | Recursively browse directories to find nubo drives. To save
 -- time, only the first sublevels of the user's home folder are
