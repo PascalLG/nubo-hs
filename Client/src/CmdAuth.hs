@@ -87,7 +87,7 @@ doAuth optpass = do
 helpAuth :: EnvIO ()
 helpAuth = do
     putLine $ "{*:USAGE}}"
-    putLine $ "    {y:nubo auth}} [{y:password}}]"
+    putLine $ "    {y:nubo auth}} [{y:options}}] [{y:password}}]"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Validate your credential with the cloud server. Authentication is usually"

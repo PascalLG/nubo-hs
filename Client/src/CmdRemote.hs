@@ -59,7 +59,7 @@ doRemote = do
 helpRemote :: EnvIO ()
 helpRemote = do
     putLine $ "{*:USAGE}}"
-    putLine $ "    {y:nubo remote}}"
+    putLine $ "    {y:nubo remote}} [{y:options}}]"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Print the URL of the cloud the current folder synchronises with. An error"

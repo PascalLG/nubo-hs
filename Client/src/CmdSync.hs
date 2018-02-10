@@ -158,7 +158,7 @@ doSync csv dry priority params = do
 helpSync :: EnvIO ()
 helpSync = do
     putLine $ "{*:USAGE}}"
-    putLine $ "    {y:nubo sync}} [{y:-d}} | {y:--dry}}] [{y:-t}} | {y:--theirs}} | {y:-o}} | {y:--ours}}] [{y:files...}}]"
+    putLine $ "    {y:nubo sync}} [{y:options}}] [{y:files...}}]"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Synchronise the local computer with the remote cloud. Locally modified files"

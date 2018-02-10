@@ -240,7 +240,7 @@ sampleBin n  = fst $ B.unfoldrN n (\x -> Just (x, x + 1)) 150
 helpInit :: EnvIO ()
 helpInit =  do
     putLine $ "{*:USAGE}}"
-    putLine $ "    {y:nubo init}} [{y:-f}} | {y:--force}}] [{y:-u}} | {y:--test}}] [{y:url}} [{y:password}}]]"
+    putLine $ "    {y:nubo init}} [{y:options}}] [{y:url}} [{y:password}}]]"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Associate the current folder with a cloud and validate your credentials."

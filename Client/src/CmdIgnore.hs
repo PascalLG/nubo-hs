@@ -126,9 +126,9 @@ helpIgnore :: EnvIO ()
 helpIgnore = do
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo ignore}}"
-    putLine $ "    {y:nubo ignore}} <{y:patterns...}}>"
-    putLine $ "    {y:nubo ignore}} {{y:-d}} | {y:--delete}}} <{y:ranks...}}>"
-    putLine $ "    {y:nubo ignore}} {{y:-d}} | {y:--delete}}} <{y:patterns...}}>"
+    putLine $ "    {y:nubo ignore}} [{y:options}}] <{y:patterns...}}>"
+    putLine $ "    {y:nubo ignore}} {{y:-d}} | {y:--delete}}} [{y:options}}] <{y:ranks...}}>"
+    putLine $ "    {y:nubo ignore}} {{y:-d}} | {y:--delete}}} [{y:options}}] <{y:patterns...}}>"
     putLine $ ""
     putLine $ "{*:DESCRIPTION}}"
     putLine $ "    Manage the list of files to ignore. As the name suggests, ignored files are"
