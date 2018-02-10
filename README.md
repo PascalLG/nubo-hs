@@ -98,12 +98,10 @@ Authentication issues are mostly related to network disconnections while synchro
 
 Just a list of improvements, things to do and ideas to explore. No particular order. No deadlines.
 
-* Ask for a confirmation in ``nubo init`` if it detects the connection is not secured with TLS
 * Synchronise file permissions (currently all files are created with the default umask)
 * Do not resolve symlinks that point to another location into the same drive
 * Check if a new version of the application is available before each invocation (both client and server side)
 * Refactor using the more robust Path package for filename handling instead of System.Filepath
-* Refactor the Archive module so it can be unit tested
 * Create a macOS application to encapsulate the command line into a nice GUI
 * Improve the web installer (permissions problems sometimes arise when installing over an old version + there is currently no migration of the database in this case)
 * Write a better documentation :-)
