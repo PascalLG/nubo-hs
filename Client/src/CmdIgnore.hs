@@ -30,6 +30,7 @@ import Control.Monad.Trans (liftIO)
 import Control.Monad.State (get)
 import Data.Char (isDigit)
 import Data.Tuple (swap)
+import Misc
 import PrettyPrint
 import Environment
 import Error
@@ -42,29 +43,32 @@ import Matching
 --
 cmdIgnore :: [String] -> EnvIO ExitStatus
 cmdIgnore args = do
-    result <- parseArgsM args [OptionDelete]
+    result <- parseArgsM args [OptionDelete, OptionCSV]
     case result of
         Left errs -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (opts, xs)
             | OptionDelete `elem` opts -> openDBAndRun $ deletePatterns xs
-            | null xs                  -> openDBAndRun $ printPatterns
+            | null xs                  -> openDBAndRun $ printPatterns (OptionCSV `elem` opts)
             | otherwise                -> openDBAndRun $ addPatterns xs
 
 -- | Print the list of file patterns to ignore. The list is sorted
 -- by pattern and each entry is assigned a rank that can be used
 -- later to delete that entry.
 --
-printPatterns :: EnvIO ExitStatus
-printPatterns = do
+printPatterns :: Bool -> EnvIO ExitStatus
+printPatterns csv = do
     patterns <- getPatternList
     cm <- consoleMode <$> get
-    liftIO $ mapM_ (printpat cm) (zip [1..] patterns)
+    liftIO $ mapM_ (if csv then printCsv else printStd cm) (zip [1..] patterns)
     return StatusOK
     where
-        printpat :: ConsoleMode -> (Int, (Int, Pattern)) -> IO ()
-        printpat cm (rank, (_, pattern)) = do
+        printStd :: ConsoleMode -> (Int, (Int, Pattern)) -> IO ()
+        printStd cm (rank, (_, pattern)) = do
             let text = (show rank) ++ ": "
             putStrLn ((replicate (8 - length text) ' ') ++ (foreColor cm AnsiYellow text) ++ (show pattern))
+
+        printCsv :: (Int, (Int, Pattern)) -> IO ()
+        printCsv (rank, (_, pattern)) = putStrF $ toCSV [show rank, show pattern]
 
 -- | Add patterns to the list of files to ignore. If a pattern already
 -- exists, it is ignored.
@@ -198,6 +202,7 @@ helpIgnore = do
     putLine $ "{*:OPTIONS}}"
     putLine $ "    {y:-d}}, {y:--delete}}    Delete the specified file patterns."
     putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
+    putLine $ "    {y:-c}}, {y:--csv}}       Format the command output as CSV."
     putLine $ ""
 
 -----------------------------------------------------------------------------
