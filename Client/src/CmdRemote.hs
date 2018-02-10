@@ -27,6 +27,7 @@ module CmdRemote (
 ) where
 
 import Control.Monad.Trans (liftIO)
+import Misc
 import PrettyPrint
 import Environment
 import Error
@@ -38,18 +39,18 @@ import Database
 --
 cmdRemote :: [String] -> EnvIO ExitStatus
 cmdRemote args = do
-    result <- parseArgsM args []
+    result <- parseArgsM args [OptionCSV]
     case result of
         Left errs        -> mapM_ putErr errs >> return StatusInvalidCommand
         Right (_, (a:_)) -> putErr (ErrExtraArgument a) >> return StatusInvalidCommand
-        Right (_, [])    -> openDBAndRun doRemote
+        Right (opts, []) -> openDBAndRun $ doRemote (OptionCSV `elem` opts)
 
 -- | Execute the 'remote' command.
 --
-doRemote :: EnvIO ExitStatus
-doRemote = do
+doRemote :: Bool -> EnvIO ExitStatus
+doRemote csv = do
     Just url <- getConfig CfgRemoteURL
-    liftIO $ putStrLn url
+    liftIO $ if csv then putStr (toCSV [url]) else putStrLn url
     return StatusOK
 
 -----------------------------------------------------------------------------
@@ -68,6 +69,7 @@ helpRemote = do
     putLine $ ""
     putLine $ "{*:OPTIONS}}"
     putLine $ "    {y:-a}}, {y:--no-ansi}}   Do not use ANSI escape sequences in output messages."
+    putLine $ "    {y:-c}}, {y:--csv}}       Format the command output as CSV."
     putLine $ ""
 
 -----------------------------------------------------------------------------
