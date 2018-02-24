@@ -42,11 +42,16 @@
 
     class NuboException extends RuntimeException {
         private $errcode;
+        private $backtrace;
 
         // Construct an exception with an error code.
 
         public function __construct($errcode) {
             $this->errcode = $errcode;
+            $this->backtrace = [];
+            foreach (debug_backtrace() as $call) {
+                $this->backtrace[] = pathinfo($call['file'], PATHINFO_BASENAME) . ' ' . $call['line'];
+            }
         }
 
         // Build the msgpack response corresponding to this exception.
@@ -64,7 +69,7 @@
                 ERROR_API_OLD_CLIENT =>     'incompatible API, client is too old',
                 ERROR_API_OLD_SERVER =>     'incompatible API, server is too old',
             ][$this->errcode];
-            return ['error' => $this->errcode, 'message' => $msg . ' (' . $this->file . ' ' . $this->line . ')'];
+            return ['error' => $this->errcode, 'message' => $msg . ' => ' . implode(', ', $this->backtrace)];
         }
     }
 
