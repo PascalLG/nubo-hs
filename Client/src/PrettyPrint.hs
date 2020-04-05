@@ -67,6 +67,6 @@ putLine text = do
     cm <- consoleMode <$> get
     liftIO $ putStrLn $ processTags cm [State { isBold = False
                                               , isUnderline = False
-                                              , textColor = AnsiWhite }] text
+                                              , textColor = AnsiDefault }] text
 
 -----------------------------------------------------------------------------

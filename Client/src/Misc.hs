@@ -26,6 +26,7 @@ module Misc (
     , putStrF
     , randomBytes
     , (<&&>)
+    , whenJust_
     , dropWhileEnd
     , toCSV
 ) where
@@ -71,6 +72,12 @@ randomBytes size = do
 infixr 3 <&&>
 (<&&>) :: Monad m => m Bool -> m Bool -> m Bool
 (<&&>) x y = x >>= \r -> if r then y else return False
+
+-- | Execute an action if the first parameter is not Nothing.
+--
+whenJust_ :: Monad m => Maybe a -> (a -> m b) -> m ()
+whenJust_ Nothing  _ = return ()
+whenJust_ (Just x) f = f x >> return () 
 
 -- | Drops the largest suffix of a list in which the given predicate
 -- holds for all elements. (Copied from base-4.5.0.0)

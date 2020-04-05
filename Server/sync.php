@@ -62,8 +62,9 @@
             if (!isset($body['auth'])) {
                 throw new NuboException(ERROR_FORBIDDEN);
             }
-            $response += ['auth' => refresh_token($db, $body['auth'])];
-            $response += $query($db, $params);
+            list($newtoken, $computer) = refresh_token($db, $body['auth']);
+            $response += ['auth' => $newtoken];
+            $response += $query($db, $params, $computer);
         } else {
         	throw new NuboException(ERROR_BAD_COMMAND);
         }

@@ -52,7 +52,7 @@ data AnsiColor = AnsiBlack
                | AnsiBlue
                | AnsiMagenta
                | AnsiCyan
-               | AnsiWhite
+               | AnsiDefault
                deriving(Eq, Enum)
 
 -- | Associate each colour with a letter. (Except for black
@@ -64,14 +64,17 @@ colors = [ ('c', AnsiCyan)
          , ('y', AnsiYellow)
          , ('r', AnsiRed)
          , ('g', AnsiGreen)
-         , ('b', AnsiBlue)
-         , ('w', AnsiWhite)]
+         , ('b', AnsiBlue)]
 
 -- | Return the ANSI escape sequence for the specified foreground
 -- colour.
 --
 ansiCodeForColor :: AnsiColor -> String
-ansiCodeForColor color = "\ESC[" ++ (show (30 + fromEnum color)) ++ "m"
+ansiCodeForColor color = "\ESC[" ++ (show (code color)) ++ "m"
+  where
+    code :: AnsiColor -> Int
+    code AnsiDefault = 39
+    code c           = 30 + fromEnum c
 
 -----------------------------------------------------------------------------
 

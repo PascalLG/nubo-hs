@@ -39,12 +39,14 @@ data Error =
     | ErrDatabaseNotFound
     | ErrServerInvalidURL String
     | ErrServerConnectionFailure
+    | ErrServerCreationTime
     | ErrServerOtherException String
     | ErrServer400 Int
     | ErrServer500 Int
     | ErrMsgPackDecoding String
     | ErrCloudNotInitialized
     | ErrCloudAuthenticationFailed
+    | ErrCloudLocked
     | ErrCloudGeneric String
     | ErrIOException String String
     | ErrInvalidMasterKey
@@ -89,12 +91,14 @@ renderError (ErrCorruptedArchive path)      = "corrupted archive for file '" ++ 
 renderError (ErrDatabaseNotFound)           = "database not found, folder is probably not synchronised"
 renderError (ErrServerInvalidURL url)       = "invalid URL: '" ++ url ++ "'"
 renderError (ErrServerConnectionFailure)    = "connection failed"
+renderError (ErrServerCreationTime)         = "server data are more recent than local cache, run 'nubo init' to fix"
 renderError (ErrServerOtherException desc)  = "unexpected error (" ++ desc ++ ")"
 renderError (ErrServer400 status)           = "page not found (HTTP " ++ show status ++ ")"
 renderError (ErrServer500 status)           = "internal server error (HTTP " ++ show status ++ ")"
 renderError (ErrMsgPackDecoding msg)        = "server response decoding failed (" ++ msg ++ ")"
 renderError (ErrCloudNotInitialized)        = "cloud not initialised"
 renderError (ErrCloudAuthenticationFailed)  = "authentication failed"
+renderError (ErrCloudLocked)                = "cloud already locked by another client"
 renderError (ErrCloudGeneric msg)           = "unexpected server error (" ++ msg ++ ")"
 renderError (ErrIOException path msg)       = "I/O error while accessing file '" ++ path ++ "': " ++ msg
 renderError (ErrInvalidMasterKey)           = "the server returned an invalid master key"

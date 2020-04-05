@@ -46,12 +46,25 @@ function revokeComputer(id, name) {
     }
 }
 
+// Release all locks.
+
+function releaseLock() {
+    var go = confirm('Release lock? You may lose data if a computer is actually syncing.');
+    if (go) {
+        callWebService('unlock');
+    }
+}
+
 // Delete a file, given its name and ID.
 
-function deleteFile(id, name) {
-    var go = confirm('Delete file "' + name + '"?');
-    if (go) {
-        callWebService('delete=' + id);
+function deleteFile(id, name, lock) {
+    if (lock) {
+        alert('Cannot delete file ' + name + '. The cloud is currently syncing.');
+    } else {
+        var go = confirm('Delete file "' + name + '"?');
+        if (go) {
+            callWebService('delete=' + id);
+        }
     }
 }
 

@@ -44,6 +44,10 @@
             $db = new NuboDatabase();
             $db->execute('DELETE FROM tbl_file WHERE file_id=:id', ['id/int' => intval($_GET['delete'])]);
             $db->close();
+        } else if (isset($_GET['unlock'])) {
+            $db = new NuboDatabase();
+            $db->execute('UPDATE tbl_computer SET lock=NULL');
+            $db->close();
         } else {
             throw new NuboException(ERROR_BAD_COMMAND);
         }

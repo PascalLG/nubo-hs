@@ -27,6 +27,7 @@ module Environment (
     , getDbConn
     , setupTlsManager
     , bracketEnvIO
+    , finallyEnvIO
     , Option(..)
     , parseArgsM
     , parseArgs
@@ -34,7 +35,7 @@ module Environment (
 
 import System.FilePath (FilePath)
 import Control.Monad.State (StateT(..), get, put, liftIO, when)
-import Control.Exception (bracket)
+import Control.Exception (bracket, finally)
 import Data.List (nub)
 import Data.Either (partitionEithers)
 import qualified Database.HDBC.Sqlite3 as SQL
@@ -77,10 +78,21 @@ setupTlsManager = do
 
 -- | Lifted version of bracket for our monad stack.
 --
-bracketEnvIO :: IO a -> (a -> IO b) -> (a -> EnvIO c) -> EnvIO c
+bracketEnvIO :: EnvIO a -> (a -> EnvIO b) -> (a -> EnvIO c) -> EnvIO c
 bracketEnvIO before after thing = do
     oldenv <- get
-    (r, newenv) <- liftIO $ bracket before after (\resource -> runStateT (thing resource) oldenv)
+    (r, newenv) <- liftIO $ bracket (runStateT before oldenv)
+                                    (\(res, env) -> runStateT (after res) env)
+                                    (\(res, env) -> runStateT (thing res) env)
+    put newenv
+    return r
+
+-- | Lifted version of finally for our monad stack.
+--
+finallyEnvIO :: EnvIO a -> EnvIO b -> EnvIO a
+finallyEnvIO thing after = do
+    oldenv <- get
+    (r, newenv) <- liftIO $ finally (runStateT thing oldenv) (runStateT after oldenv)
     put newenv
     return r
 

@@ -162,7 +162,7 @@ callAPI manager url params obs_send obs_recv = do
 -- breaks compatibility with already deployed servers.
 --
 apiLevel :: Int
-apiLevel = 2
+apiLevel = 3
 
 -----------------------------------------------------------------------------
 -- Progress bar.

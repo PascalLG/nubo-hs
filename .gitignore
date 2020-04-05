@@ -17,7 +17,7 @@ cabal.sandbox.config
 *.eventlog
 .stack-work/
 cabal.project.local
+stack.yaml.lock
 .HTF/
 Server/storage/
 Client/nubo_debug.rdb
-

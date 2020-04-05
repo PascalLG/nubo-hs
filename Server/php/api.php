@@ -43,7 +43,7 @@
             if (($row = reset($result)) !== false && $row['validator'] == hash('sha256', $validator)) {
                 $validator = bin2hex(random_bytes(16));
                 $db->execute('UPDATE tbl_computer SET validator=:val, atime=:atime WHERE computer_id=:id', ['id/int' => $row['computer_id'], 'val/text' => hash('sha256', $validator), 'atime/int' => time()]);
-                return "$selector:$validator";
+                return array("$selector:$validator", $row['computer_id']);
             } else {
     			$db->execute('UPDATE tbl_computer SET selector=NULL, validator=NULL WHERE computer_id=:id', ['id/int' => $row['computer_id']]);
             }
@@ -75,7 +75,7 @@
         if (($row = reset($result)) !== false && password_verify($params['password'], $row['value'])) {
         	$selector = bin2hex(random_bytes(16));
         	$validator = bin2hex(random_bytes(16));
-            $db->execute('INSERT INTO tbl_computer(computer, hostname, selector, validator, atime) VALUES (:computer, :hostname, :selector, :validator, :atime)', [
+            $db->execute('INSERT INTO tbl_computer(computer, hostname, selector, validator, atime, lock) VALUES (:computer, :hostname, :selector, :validator, :atime, NULL)', [
                 'computer/text' => $params['computer'],
                 'hostname/text' => $params['hostname'],
                 'selector/text' => $selector,
@@ -100,9 +100,15 @@
     // Directory command. Return the list of all archives on the server
     // with their hash.
 
-    function cmd_directory($db, $params) {
+    function cmd_directory($db, $params, $computer) {
+        $result = $db->select('SELECT value FROM tbl_config WHERE key="ctime" LIMIT 1');
+        if (($row = reset($result)) !== false) {
+            $ctime = unpack('L', $row['value'])[1];
+        } else {
+            $ctime = 0;
+        }
         $result = $db->select('SELECT filename AS f, hash AS h FROM tbl_file');
-        return ['result' => $result];
+        return ['result' => $result, 'ctime' => $ctime];
     }
 
     // Put command. Store an archive sent by the client application. The
@@ -110,7 +116,7 @@
     // content is stored on disk. If the item is actually a directory,
     // the hash is empty and the content is missing.
 
-    function cmd_put($db, $params) {
+    function cmd_put($db, $params, $computer) {
         if (!isset($params['name']) || !isset($params['hash']) || !isset($params['mtime']) || ($params['hash'] != '' && !isset($params['content']))) {
             throw new NuboException(ERROR_MISSING_PARAMETER);
         }
@@ -137,7 +143,7 @@
     // Get command. Return the content and the hash of an archive. In case the
     // filename refers to a directory, both the hash and content are empty.
 
-    function cmd_get($db, $params) {
+    function cmd_get($db, $params, $computer) {
         if (!isset($params['name'])) {
             throw new NuboException(ERROR_MISSING_PARAMETER);
         }
@@ -156,10 +162,21 @@
         return ['hash' => $row['hash'], 'mtime' => $row['mtime'], 'content' => $content];
     }
 
+    // Rename command. Change the name of a file, without changing its
+    // hash, modification time or content.
+
+    function cmd_rename($db, $params, $computer) {
+        if (!isset($params['oldname']) || !isset($params['newname'])) {
+            throw new NuboException(ERROR_MISSING_PARAMETER);
+        }
+        $db->execute('UPDATE tbl_file SET filename=:newname WHERE filename=:oldname', ['oldname/text' => $params['oldname'], 'newname/text' => $params['newname']]);
+        return [];
+    }
+
     // Delete command. Remove an archive or a directory from the database
     // and from the disk.
 
-    function cmd_delete($db, $params) {
+    function cmd_delete($db, $params, $computer) {
         if (!isset($params['name'])) {
             throw new NuboException(ERROR_MISSING_PARAMETER);
         }
@@ -171,12 +188,46 @@
         }
         return [];
     }
+    
+    // Lock/unlock command. This mechanism is used to prevent several
+    // computers from synchronising at the same time. (It is the only
+    // part of the API that is not stateless).
+ 
+    function cmd_lock($db, $params, $computer) {
+        global $glo_dirname;
+		if (!isset($params['lock'])) {
+            throw new NuboException(ERROR_MISSING_PARAMETER);
+        }
+        $mutex = fopen("./$glo_dirname/lock", "w+");
+        if (!$mutex) {
+            throw new NuboException(ERROR_INTERNAL);
+        }
+        try {
+            flock($mutex, LOCK_EX);
+            if ($params['lock']) {
+                $result = $db->select('SELECT computer_id FROM tbl_computer WHERE lock IS NOT NULL');
+                if (reset($result) !== false) {
+                    $status = 'busy';
+                } else {
+                    $db->execute('UPDATE tbl_computer SET lock=:ltime WHERE computer_id=:id', ['id/int' => $computer, 'ltime/int' => time()]);
+                    $status = 'locked';
+                }
+            } else {
+                $db->execute('UPDATE tbl_computer SET lock=NULL WHERE computer_id=:id', ['id/int' => $computer]);
+                $status = 'unlocked';
+            }
+        } finally {
+            flock($mutex, LOCK_UN);
+            fclose($mutex);
+        }
+		return ['status' => $status];
+	}
 
     // Test command. It only returns its parameter unchanged. (This
     // is called by the client application when initialising with
     // the --test option.)
 
-    function cmd_test($db, $params) {
+    function cmd_test($db, $params, $computer) {
         return ['test' => $params];
     }
 
