@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION="2.1.2"
-BUILDPATH=../Client/.stack-work/install/x86_64-linux/lts-8.21/8.0.2/bin/nubo-exe
+BUILDPATH=../Client/.stack-work/install/x86_64-linux/lts-13.1/8.6.3/bin/nubo-exe
 
 # Check we are root
 if [[ $EUID -ne 0 ]]; then
