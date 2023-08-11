@@ -51,7 +51,7 @@ cmdHelp help args = do
 printUsage :: EnvIO ()
 printUsage = do
     putLine $ "{c:Nubo command line client - Version " ++ showVersion version ++ "}}"
-    putLine $ "{c:(c) 2017-2020, Æquans}}"
+    putLine $ "{c:(c) 2017-2023, Æquans}}"
     putLine $ ""
     putLine $ "{*:USAGE}}"
     putLine $ "    {y:nubo}} <{y:command}}> [{y:options}}] [{y:parameters}}]"
@@ -62,7 +62,7 @@ printUsage = do
     putLine $ "    available commands."
     putLine $ ""
     putLine $ "    For more information about {y:nubo}} and detailed instructions on installing the"
-    putLine $ "    server side application, refer to: {_:{m:https://github.com/PascalLG/Nubo}}}}."
+    putLine $ "    server side application, refer to: {_:{m:https://github.com/PascalLG/nubo-hs}}}}."
     putLine $ ""
     putLine $ "{*:COMMANDS}}"
     putLine $ "    {y:init}}    Initialise the current folder as a nubo synced folder"

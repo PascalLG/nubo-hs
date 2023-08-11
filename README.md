@@ -19,7 +19,7 @@ Basically nubo runs as any other file sharing solution. You drop files into a sp
 
 * You can add filter patterns (on a computer basis) to avoid synchronising specific files. For example, you may want to ignore all ``.o`` files if you happen to compile a C project directly from your nubo drive. Or you may want to share files between your personal and your business computers, except for that folder with very personal content.
 
-* Unlike other similar applications, the nubo configuration is not stored globally but in a hidden file in each nubo drive. This means you can have as many nubo drives as you want on your computer, each synchronising with a different server. 
+* Unlike other similar applications, the nubo configuration is not stored globally but in a hidden file in each nubo drive. This means you can have as many nubo drives as you want on your computer, each synchronising with a different server.
 
 * Nubo silently ignores the following files and directories: ``.DS_Store``, ``Icon\\r``, ``.cabal-sandbox``, ``cabal.sandbox.config``, ``.stack-work``, ``.git``, ``desktop.ini`` and ``thumbs.db``. All these files are only relevant for a given computer (mostly because they store absolute paths) and there is no point in transfering them on another computer.
 
@@ -108,4 +108,4 @@ Just a list of improvements, things to do and ideas to explore. No particular or
 
 Suggestions are welcome. My goal is to keep this application as simple and minimalist as possible. "Make each program do one thing well" says the Unix philosophy!
 
-You can also check the [wiki page](https://github.com/PascalLG/Nubo/wiki) if you are looking for more technical informations.
+You can also check the [wiki page](https://github.com/PascalLG/nubo-hs/wiki) if you are looking for more technical informations.

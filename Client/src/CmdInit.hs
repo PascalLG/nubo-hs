@@ -62,7 +62,7 @@ cmdInit args = do
         exec :: [Option] -> Maybe String -> Maybe String -> EnvIO ExitStatus
         exec options url pass = liftIO findNuboDB >>= \previous ->
             case previous of
-                Just p | OptionForce `notElem` options -> putErr (ErrAlreadySyncFolder p) >> 
+                Just p | OptionForce `notElem` options -> putErr (ErrAlreadySyncFolder p) >>
                                                           return StatusDatabaseAlreadyExists
                 _                                      -> createDBAndRun $ doInit url pass
                                                                                   (OptionTest `elem` options)
@@ -89,7 +89,7 @@ doInit opturl optpass test notls = do
         Just u  -> return u
         Nothing -> liftIO $ promptUserInput "Cloud URL?" True
     saveConfig CfgRemoteURL url
-    
+
     secure <- let https = map toLower (take 6 url) == "https:"
                   ask = promptUserInput "This server is not secured by TLS/SSL. Proceed anyway? (yes/no) " True
               in if notls || https then return True
@@ -121,7 +121,7 @@ doInit opturl optpass test notls = do
 -- | Perform basic sanity checks. The goal is to ensure the communication
 -- layer works as expected by testing: calling the server, encoding and
 -- decoding MsgPack data, sending and receiving authentication tokens.
--- A failure may indicate the server runs an exotic PHP configuration 
+-- A failure may indicate the server runs an exotic PHP configuration
 -- our code is not compatible with.
 --
 doSanityChecks :: EnvIO ExitStatus
@@ -197,7 +197,7 @@ testCase = MsgObject [ ("null",   MsgNull)
                       , MsgFloat 1.0
                       , MsgFloat 3.1415926535 ]
 
-        testString   = [ MsgString T.empty 
+        testString   = [ MsgString T.empty
                        , MsgString (sampleText 1)
                        , MsgString (sampleText 31)
                        , MsgString (sampleText 32)
@@ -280,7 +280,7 @@ helpInit =  do
     putLine $ "    initialisation. These tests ensure the server works as expected and"
     putLine $ "    interfaces properly with the client. Should they fail, it is advised not"
     putLine $ "    to use {y:nubo}} on this server and to report a bug at {m:https://github.com/}}"
-    putLine $ "    {m:PascalLG/Nubo}}. This will help in making the application compatible"
+    putLine $ "    {m:PascalLG/nubo-hs}}. This will help in making the application compatible"
     putLine $ "    with exotic PHP configurations."
     putLine $ ""
     putLine $ "    This command does not initiate any file transfer whatsoever. It only"

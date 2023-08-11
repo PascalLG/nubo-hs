@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# read version and trim trailing spaces
+VERSION=$(<versioninfo.txt)
+VERSION="${VERSION%"${VERSION##*[![:space:]]}"}"
+
+# Patch the server version number
+sed -E -i "" -e "s/define\\(\"VERSION\", *\"[0-9.]+\"\\);/define(\"VERSION\", \"$VERSION\");/" ../Server/php/version.php
+
 # Remove any previous temporary file.
 rm tmp.zip > /dev/null 2>&1
 
@@ -39,7 +46,7 @@ cat << 'EOF' > nubo.php
 EOF
 
 # Inline the base64 encoded server source code.
-base64 tmp.zip | fold -w 128 >> nubo.php
+base64 < tmp.zip | fold -w 128 >> nubo.php
 rm tmp.zip
 
 # Generate the installer body.
@@ -94,7 +101,7 @@ EOT;
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 </head>
 <body>
-<?php 
+<?php
     if (($errors = checkCompatibility()) != '') {
         echo "<p>Installation failed because of the following issues:</p>";
         echo "<ul>$errors</ul>";

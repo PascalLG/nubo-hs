@@ -21,3 +21,7 @@ stack.yaml.lock
 .HTF/
 Server/storage/
 Client/nubo_debug.rdb
+Prod/nubo.php
+Prod/nubo.msi
+Prod/nubo.pkg
+Prod/nubo.deb

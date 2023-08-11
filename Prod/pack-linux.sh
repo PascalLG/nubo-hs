@@ -1,49 +1,75 @@
 #!/bin/bash
 
-VERSION="2.1.2"
-BUILDPATH=../Client/.stack-work/install/x86_64-linux/lts-13.1/8.6.3/bin/nubo-exe
+# exit if any command fails
+set -e
 
-# Check we are root
-if [[ $EUID -ne 0 ]]; then
-   echo "Oops. This script must be run as root." 1>&2
-   exit 1
-fi
+# uncomment to debug this script
+# trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# trap 'echo "\"${last_command}\" command failed with exit code $?."' EXIT
+
+# read version and trim trailing spaces
+VERSION=$(<versioninfo.txt)
+VERSION="${VERSION%"${VERSION##*[![:space:]]}"}"
+
+echo
+echo "==============================================="
+echo "=== Packaging nubo client v$VERSION for Debian ==="
+echo "==============================================="
+echo
+echo "Compiling..."
+echo
+
+# patch the cabal file, build the client and retrieve the PATH to the binary
+# note: the windows packager leaves the cabal file with CRLF line endings, it must be
+# converted back to LF before being passed to sed.
+pushd ../Client > /dev/null 2>&1
+tr -d '\r' < nubo.cabal | sed -E -e "s/^[[:space:]]*version:[[:space:]]*[0-9.]+[[:space:]]*$/version:             $VERSION/" > nubo.cabal.tmp
+mv -f nubo.cabal.tmp nubo.cabal
+stack build
+BUILDPATH=$(stack path --local-install-root)/bin/nubo-exe
+popd > /dev/null 2>&1
 
 # Check build products actually exist.
 if ! [ -f $BUILDPATH ]; then
     echo "Oops. Build products not found."
-    echo "Run 'stack build' in the ../Client folder first."
     exit 1
 fi
 
 # Remove any previous package
-rm nubo.deb > /dev/null 2>&1
+rm -f nubo.deb > /dev/null 2>&1
 
 # Prepare the package content
-mkdir -p "/tmp/nubo/usr/local/bin"
-cp $BUILDPATH /tmp/nubo/usr/local/bin/nubo
-strip /tmp/nubo/usr/local/bin/nubo
-chmod 755 /tmp/nubo/usr/local/bin/nubo
-chown -R root:root /tmp/nubo
+echo
+echo "Packaging..."
+echo
+
+mkdir -p "tmp/nubo/usr/local/bin"
+cp $BUILDPATH tmp/nubo/usr/local/bin/nubo
+strip tmp/nubo/usr/local/bin/nubo
+chmod 755 tmp/nubo/usr/local/bin/nubo
 
 # Prepare the package metadata
-mkdir -p "/tmp/nubo/DEBIAN"
-cat << EOF > /tmp/nubo/DEBIAN/control
+mkdir -p "tmp/nubo/DEBIAN"
+cat << EOF > tmp/nubo/DEBIAN/control
 Package: nubo
 Version: $VERSION
-Section: base
+Section: misc
 Priority: optional
-Architecture: all
+Architecture: amd64
 Maintainer: pascal.levy@aequans.com
 Description: Nubo client application
-Homepage: https://github.com/PascalLG/Nubo
+Homepage: https://github.com/PascalLG/nubo-hs
 EOF
 
 # Build the package
-pushd /tmp > /dev/null
+pushd tmp > /dev/null
 dpkg-deb --build nubo
 popd > /dev/null
-mv /tmp/nubo.deb .
+mv tmp/nubo.deb .
 
 # Remove temporary files
-rm -rf /tmp/nubo
+rm -rf tmp
+
+echo
+echo "OK."
+echo

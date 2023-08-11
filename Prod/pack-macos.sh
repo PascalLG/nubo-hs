@@ -1,40 +1,64 @@
 #!/bin/bash
 
-VERSION="2.1.2"
-BUILDPATH=../Client/.stack-work/install/x86_64-osx/81923d15deb92cdd04d3a2948f87cfafc1b29496285a8e7a10d2aaba36d65a64/8.6.3/bin/nubo-exe
+# exit if any command fails
+set -e
 
-# Check we are root
-if [[ $EUID -ne 0 ]]; then
-   echo "Oops. This script must be run as root." 1>&2
-   exit 1
-fi
+# trap 'last_command=$current_command; current_command=$BASH_COMMAND' DEBUG
+# trap 'echo "\"${last_command}\" command failed with exit code $?."' EXIT
+
+# read version and trim trailing spaces
+VERSION=$(<versioninfo.txt)
+VERSION="${VERSION%"${VERSION##*[![:space:]]}"}"
+
+echo
+echo "=============================================="
+echo "=== Packaging nubo client v$VERSION for macOS ==="
+echo "=============================================="
+echo
+echo "Compiling..."
+echo
+
+# patch the cabal file, build the client and retrieve the PATH to the binary
+# note: the windows packager leaves the cabal file with CRLF line endings, it must be
+# converted back to LF before being passed to sed.
+pushd ../Client > /dev/null 2>&1
+tr -d '\r' < nubo.cabal | sed -E -e "s/^[[:space:]]*version:[[:space:]]*[0-9.]+[[:space:]]*$/version:             $VERSION/" > nubo.cabal.tmp
+mv -f nubo.cabal.tmp nubo.cabal
+stack build
+BUILDPATH=$(stack path --local-install-root)/bin/nubo-exe
+popd > /dev/null 2>&1
 
 # Check build products actually exist.
 if ! [ -f $BUILDPATH ]; then
     echo "Oops. Build products not found."
-    echo "Run 'stack build' in the ../Client folder first."
     exit 1
 fi
 
 # Remove any previous package
-rm nubo.pkg > /dev/null 2>&1
-rm nubo_s.pkg > /dev/null 2>&1
+rm -f nubo.pkg > /dev/null 2>&1
+rm -f nubo_s.pkg > /dev/null 2>&1
 
 # Prepare the package content
-mkdir -p "nubo/usr/local/bin"
-cp $BUILDPATH nubo/usr/local/bin/nubo
-strip nubo/usr/local/bin/nubo
-chmod 755 nubo/usr/local/bin/nubo
-chown -R root:wheel nubo
+echo
+echo "Packaging..."
+echo
+
+mkdir -p "tmp/usr/local/bin"
+cp $BUILDPATH tmp/usr/local/bin/nubo
+strip tmp/usr/local/bin/nubo
+chmod 755 tmp/usr/local/bin/nubo
 
 # Build the package
-pkgbuild --root nubo --identifier com.aequans.nubo --version $VERSION nubo.pkg
-
-# Sign the package
-productsign --sign "Developer ID Installer" nubo.pkg nubo_s.pkg
-if [ -f nubo_s.pkg ]; then
-    mv -f nubo_s.pkg nubo.pkg
-fi
+pkgbuild --root tmp --identifier com.aequans.nubo --version $VERSION --ownership recommended nubo.pkg
 
 # Remove temporary files
-rm -rf nubo
+rm -rf tmp > /dev/null 2>&1
+
+# Sign the package
+# productsign --sign "Developer ID Installer" nubo.pkg nubo_s.pkg
+# if [ -f nubo_s.pkg ]; then
+#     mv -f nubo_s.pkg nubo.pkg
+# fi
+
+echo
+echo "OK."

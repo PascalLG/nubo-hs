@@ -1,12 +1,12 @@
 name:                nubo
-version:             2.1.2
+version:             2.1.3
 -- synopsis:
 -- description:
 homepage:            https://github.com/PascalLG/nubo-hs
 license:             MIT
 author:              Pascal Levy
 maintainer:          pascal.levy@aequans.com
-copyright:           2017-2020 Æquans
+copyright:           2017-2023 Æquans
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.10
